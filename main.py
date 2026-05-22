@@ -42,7 +42,7 @@ menu = ReplyKeyboardMarkup(
 
 
 # ================= START =================
-@dp.message()
+@dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
     await create_user(m.from_user.id)
     await m.answer("🚀 V5 SaaS ready", reply_markup=menu)
