@@ -92,23 +92,19 @@ async def carousel(m: types.Message):
         )
 
         if not images:
+
             return await m.answer(
                 "❌ Images not generated"
             )
 
-        media = []
-
+        # отправляем по одной картинке
         for img in images:
 
-            media.append(
-                InputMediaPhoto(media=img)
+            await m.answer_photo(
+                photo=img
             )
 
-        await bot.send_media_group(
-            chat_id=m.chat.id,
-            media=media
-        )
-
+        # потом текст
         await m.answer(text)
 
     except Exception as e:
@@ -118,8 +114,6 @@ async def carousel(m: types.Message):
         await m.answer(
             "❌ Carousel error"
         )
-
-
 # ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
