@@ -1,32 +1,24 @@
 import asyncio
 
-from fastapi import FastAPI
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import (
     ReplyKeyboardMarkup,
-    KeyboardButton,
-    InputMediaPhoto
+    KeyboardButton
 )
 
 from config import BOT_TOKEN, ADMIN_ID
+
 from ai import generate_text
+
 from media import (
     generate_images,
     generate_reels_text
 )
+
 from db import (
     init_db,
     create_user
 )
-
-
-# ================= FASTAPI =================
-app = FastAPI()
-
-
-@app.get("/")
-async def root():
-    return {"status": "ok"}
 
 
 # ================= BOT =================
@@ -60,6 +52,8 @@ menu = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
+
 # ================= START =================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
@@ -67,14 +61,14 @@ async def start(m: types.Message):
     await create_user(m.from_user.id)
 
     await m.answer(
-       "🚀 Добро пожаловать в V5 AI SaaS\n\n"
-"Создавай AI контент за секунды.",
+        "🚀 Добро пожаловать в V5 AI SaaS\n\n"
+        "Создавай AI-контент за секунды.",
         reply_markup=menu
     )
 
 
 # ================= AI POST =================
-@dp.message(lambda m: m.text == "🔥 AI Post")
+@dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
 
     try:
@@ -103,12 +97,12 @@ async def ai_post(m: types.Message):
         print("AI ERROR:", e)
 
         await m.answer(
-            "❌ AI generation error"
+            "❌ Ошибка генерации поста"
         )
 
 
 # ================= CAROUSEL =================
-@dp.message(lambda m: m.text == "🖼 Carousel")
+@dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
 
     try:
@@ -123,7 +117,7 @@ async def carousel(m: types.Message):
         if not images:
 
             return await m.answer(
-                "❌ Images not generated"
+                "❌ Картинки не сгенерированы"
             )
 
         # отправляем по одной картинке
@@ -141,7 +135,7 @@ async def carousel(m: types.Message):
         print("CAROUSEL ERROR:", e)
 
         await m.answer(
-            "❌ Carousel error"
+            "❌ Ошибка карусели"
         )
 
 
@@ -180,30 +174,7 @@ async def reels(m: types.Message):
         )
 
 
-# ================= UPGRADE =================
-@dp.message(lambda m: m.text == "💳 Тарифы")
-async def upgrade(m: types.Message):
-
-    await m.answer(
-        "💎 ТАРИФЫ V5 AI\n\n"
-
-        "🆓 FREE\n"
-        "• 5 AI постов\n"
-        "• 1 карусель\n"
-        "• 1 reels\n\n"
-
-        "🚀 PRO — 990₽/мес\n"
-        "• Безлимит AI постов\n"
-        "• Безлимит каруселей\n"
-        "• AI Reels\n"
-        "• Приоритет генерации\n"
-        "• Premium AI\n\n"
-
-        "💳 Оплата появится скоро"
-    )
-
-
-    # ================= IDEAS =================
+# ================= IDEAS =================
 @dp.message(lambda m: m.text == "🧠 Идеи")
 async def ideas(m: types.Message):
 
@@ -233,42 +204,60 @@ async def trends(m: types.Message):
     )
 
 
+# ================= UPGRADE =================
+@dp.message(lambda m: m.text == "💳 Тарифы")
+async def upgrade(m: types.Message):
+
+    await m.answer(
+        "💎 ТАРИФЫ V5 AI\n\n"
+
+        "🆓 FREE\n"
+        "• 5 AI постов\n"
+        "• 1 карусель\n"
+        "• 1 reels\n\n"
+
+        "🚀 PRO — 990₽/мес\n"
+        "• Безлимит AI постов\n"
+        "• Безлимит каруселей\n"
+        "• AI Reels\n"
+        "• Приоритет генерации\n"
+        "• Premium AI\n\n"
+
+        "💳 Оплата появится скоро"
+    )
+
+
 # ================= ADMIN =================
-@dp.message(lambda m: m.text == "👑 Admin")
+@dp.message(lambda m: m.text == "👑 Админ")
 async def admin(m: types.Message):
 
     if m.from_user.id != ADMIN_ID:
 
         return await m.answer(
-            "❌ no access"
+            "❌ Нет доступа"
         )
 
     await m.answer(
         "👑 ADMIN PANEL\n\n"
-        "/users - list users\n"
-        "/stats - system stats"
+        "/users - список пользователей\n"
+        "/stats - статистика системы"
     )
 
 
-# ================= STARTUP =================
-@app.on_event("startup")
-async def startup():
+# ================= MAIN =================
+async def main():
 
     await init_db()
 
-    # remove old webhook
+    # удаляем webhook
     await bot.delete_webhook(
         drop_pending_updates=True
     )
 
-    # start polling
-    asyncio.create_task(
-        dp.start_polling(bot)
-    )
+    # запускаем polling
+    await dp.start_polling(bot)
 
 
-# ================= SHUTDOWN =================
-@app.on_event("shutdown")
-async def shutdown():
+if __name__ == "__main__":
 
-    await bot.session.close()
+    asyncio.run(main())
