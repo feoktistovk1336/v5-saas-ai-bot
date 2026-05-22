@@ -67,7 +67,22 @@ async def ai_post(m: types.Message):
 
         text, topic = await generate_text()
 
-        await m.answer(text)
+        images = await generate_images(
+            topic,
+            1
+        )
+
+        # если картинка есть
+        if images:
+
+            await m.answer_photo(
+                photo=images[0],
+                caption=text
+            )
+
+        else:
+
+            await m.answer(text)
 
     except Exception as e:
 
@@ -76,8 +91,6 @@ async def ai_post(m: types.Message):
         await m.answer(
             "❌ AI generation error"
         )
-
-
 # ================= CAROUSEL =================
 @dp.message(lambda m: m.text == "🖼 Carousel")
 async def carousel(m: types.Message):
