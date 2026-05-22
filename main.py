@@ -184,6 +184,38 @@ async def upgrade(m: types.Message):
 
         "💳 Оплата появится скоро"
     )
+
+
+    # ================= IDEAS =================
+@dp.message(lambda m: m.text == "🧠 Идеи")
+async def ideas(m: types.Message):
+
+    await m.answer(
+        "💡 ИДЕИ ДЛЯ КОНТЕНТА\n\n"
+
+        "1. 5 AI-инструментов для бизнеса\n"
+        "2. Как заработать на нейросетях\n"
+        "3. AI vs дизайнеры\n"
+        "4. Лучшие GPT для работы\n"
+        "5. Как автоматизировать контент"
+    )
+
+
+# ================= TRENDS =================
+@dp.message(lambda m: m.text == "📈 Тренды")
+async def trends(m: types.Message):
+
+    await m.answer(
+        "📈 AI ТРЕНДЫ 2026\n\n"
+
+        "🔥 AI агенты\n"
+        "🔥 TikTok automation\n"
+        "🔥 Faceless YouTube\n"
+        "🔥 AI инфобизнес\n"
+        "🔥 AI видео"
+    )
+
+
 # ================= ADMIN =================
 @dp.message(lambda m: m.text == "👑 Admin")
 async def admin(m: types.Message):
