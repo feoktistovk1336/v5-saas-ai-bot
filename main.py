@@ -14,7 +14,10 @@ from media import (
     generate_images,
     generate_reels_text
 )
-from db import init_db, create_user
+from db import (
+    init_db,
+    create_user
+)
 
 
 # ================= FASTAPI =================
@@ -47,6 +50,7 @@ menu = ReplyKeyboardMarkup(
 # ================= START =================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
+
     await create_user(m.from_user.id)
 
     await m.answer(
@@ -60,11 +64,13 @@ async def start(m: types.Message):
 async def ai_post(m: types.Message):
 
     try:
+
         text, topic = await generate_text()
 
         await m.answer(text)
 
     except Exception as e:
+
         print("AI ERROR:", e)
 
         await m.answer(
@@ -77,11 +83,14 @@ async def ai_post(m: types.Message):
 async def carousel(m: types.Message):
 
     try:
+
         text, topic = await generate_text()
 
-        images = await generate_images(topic, 5)
+        images = await generate_images(
+            topic,
+            5
+        )
 
-        # если картинок нет
         if not images:
             return await m.answer(
                 "❌ Images not generated"
@@ -103,6 +112,7 @@ async def carousel(m: types.Message):
         await m.answer(text)
 
     except Exception as e:
+
         print("CAROUSEL ERROR:", e)
 
         await m.answer(
@@ -115,6 +125,7 @@ async def carousel(m: types.Message):
 async def reels(m: types.Message):
 
     try:
+
         text, topic = await generate_text()
 
         script = await generate_reels_text(
@@ -124,6 +135,7 @@ async def reels(m: types.Message):
         await m.answer(script)
 
     except Exception as e:
+
         print("REELS ERROR:", e)
 
         await m.answer(
@@ -131,11 +143,25 @@ async def reels(m: types.Message):
         )
 
 
+# ================= UPGRADE =================
+@dp.message(lambda m: m.text == "💳 Upgrade")
+async def upgrade(m: types.Message):
+
+    await m.answer(
+        "💎 PRO PLAN\n\n"
+        "Unlimited AI posts\n"
+        "Unlimited carousels\n"
+        "Unlimited reels\n\n"
+        "Stripe integration soon 🚀"
+    )
+
+
 # ================= ADMIN =================
 @dp.message(lambda m: m.text == "👑 Admin")
 async def admin(m: types.Message):
 
     if m.from_user.id != ADMIN_ID:
+
         return await m.answer(
             "❌ no access"
         )
@@ -153,12 +179,12 @@ async def startup():
 
     await init_db()
 
-    # удаляем webhook
+    # remove old webhook
     await bot.delete_webhook(
         drop_pending_updates=True
     )
 
-    # запускаем polling
+    # start polling
     asyncio.create_task(
         dp.start_polling(bot)
     )
