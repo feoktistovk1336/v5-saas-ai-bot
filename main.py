@@ -67,7 +67,8 @@ async def start(m: types.Message):
     await create_user(m.from_user.id)
 
     await m.answer(
-        "🚀 V5 SaaS ready",
+       "🚀 Добро пожаловать в V5 AI SaaS\n\n"
+"Создавай AI контент за секунды.",
         reply_markup=menu
     )
 
