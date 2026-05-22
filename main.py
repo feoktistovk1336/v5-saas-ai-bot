@@ -153,9 +153,21 @@ async def reels(m: types.Message):
 
         text, topic = await generate_text()
 
-        script = await generate_reels_text(
-            topic
-        )
+        script = f"""
+🎬 AI REELS
+
+🔥 Хук:
+Ты не готов к тому, как AI меняет рынок прямо сейчас...
+
+📌 Тема:
+{topic}
+
+🧠 Сценарий:
+{text}
+
+🚀 Призыв:
+Подпишись, чтобы получать больше AI-контента.
+"""
 
         await m.answer(script)
 
@@ -164,7 +176,7 @@ async def reels(m: types.Message):
         print("REELS ERROR:", e)
 
         await m.answer(
-            "❌ Reels generation error"
+            "❌ Ошибка генерации Reels"
         )
 
 
