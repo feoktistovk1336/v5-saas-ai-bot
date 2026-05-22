@@ -1,0 +1,41 @@
+import aiosqlite
+from config import DB_PATH
+
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            telegram_id INTEGER,
+            plan TEXT DEFAULT 'free',
+            requests INTEGER DEFAULT 0
+        )
+        """)
+        await db.commit()
+
+
+async def get_user(tg_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "SELECT * FROM users WHERE telegram_id=?",
+            (tg_id,)
+        )
+        return await cur.fetchone()
+
+
+async def create_user(tg_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO users (telegram_id) VALUES (?)",
+            (tg_id,)
+        )
+        await db.commit()
+
+
+async def upgrade_user(tg_id, plan):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET plan=? WHERE telegram_id=?",
+            (plan, tg_id)
+        )
+        await db.commit()
