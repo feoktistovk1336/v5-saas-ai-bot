@@ -1,23 +1,38 @@
 import aiohttp
-import random
 
-# IMAGE GENERATION
+
+# ================= IMAGE GENERATION =================
 async def generate_images(prompt: str, count=5):
     images = []
 
-    for i in range(count):
-        url = f"https://image.pollinations.ai/prompt/{prompt}, cinematic {i}"
+    async with aiohttp.ClientSession() as session:
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as r:
-                if r.status == 200:
-                    images.append(await r.read())
+        for i in range(count):
+
+            url = (
+                f"https://image.pollinations.ai/prompt/"
+                f"{prompt}%20cinematic%20{i}"
+            )
+
+            try:
+                async with session.get(url) as r:
+
+                    if r.status == 200:
+                        # сохраняем URL, а не bytes
+                        images.append(url)
+
+                    else:
+                        print("IMAGE STATUS:", r.status)
+
+            except Exception as e:
+                print("IMAGE ERROR:", e)
 
     return images
 
 
-# MOCK REELS (пока без ffmpeg)
+# ================= MOCK REELS =================
 async def generate_reels_text(topic: str):
+
     return f"""
 🔥 VIRAL REELS SCRIPT
 
