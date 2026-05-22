@@ -105,6 +105,8 @@ async def ai_post(m: types.Message):
         await m.answer(
             "❌ AI generation error"
         )
+
+
 # ================= CAROUSEL =================
 @dp.message(lambda m: m.text == "🖼 Carousel")
 async def carousel(m: types.Message):
@@ -141,6 +143,8 @@ async def carousel(m: types.Message):
         await m.answer(
             "❌ Carousel error"
         )
+
+
 # ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
