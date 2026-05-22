@@ -98,11 +98,11 @@ async def admin(m: types.Message):
     )
 
 
-# ================= STARTUP =================
-@app.on_event("startup")
-async def startup():
-    await init_db()
-
-    asyncio.create_task(
-        dp.start_polling(bot)
+# ================= START =================
+@dp.message(lambda m: m.text == "/start")
+async def start(m: types.Message):
+    await create_user(m.from_user.id)
+    await m.answer(
+        "🚀 V5 SaaS ready",
+        reply_markup=menu
     )
