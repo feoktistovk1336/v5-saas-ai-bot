@@ -1,9 +1,14 @@
 import aiohttp
+from aiogram.types import FSInputFile
+import os
 
 
 # ================= IMAGE GENERATION =================
 async def generate_images(prompt: str, count=5):
+
     images = []
+
+    os.makedirs("temp", exist_ok=True)
 
     async with aiohttp.ClientSession() as session:
 
@@ -18,8 +23,15 @@ async def generate_images(prompt: str, count=5):
                 async with session.get(url) as r:
 
                     if r.status == 200:
-                        # сохраняем URL, а не bytes
-                        images.append(url)
+
+                        filename = f"temp/{i}.jpg"
+
+                        with open(filename, "wb") as f:
+                            f.write(await r.read())
+
+                        images.append(
+                            FSInputFile(filename)
+                        )
 
                     else:
                         print("IMAGE STATUS:", r.status)
@@ -30,7 +42,7 @@ async def generate_images(prompt: str, count=5):
     return images
 
 
-# ================= MOCK REELS =================
+# ================= REELS =================
 async def generate_reels_text(topic: str):
 
     return f"""
