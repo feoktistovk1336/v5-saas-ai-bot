@@ -63,23 +63,37 @@ async def ai_post(m: types.Message):
 # ================= CAROUSEL =================
 @dp.message(lambda m: m.text == "🖼 Carousel")
 async def carousel(m: types.Message):
-    text, topic = await generate_text()
+    try:
+        text, topic = await generate_text()
 
-    images = await generate_images(topic, 5)
+        images = await generate_images(topic, 5)
 
-    media = [
-        InputMediaPhoto(media=img)
-        for img in images
-    ]
+        # если картинок нет
+        if not images:
+            return await m.answer(
+                "❌ Images not generated"
+            )
 
-    await bot.send_media_group(
-        chat_id=m.chat.id,
-        media=media
-    )
+        media = []
 
-    await m.answer(text)
+        for img in images:
+            media.append(
+                InputMediaPhoto(media=img)
+            )
 
+        await bot.send_media_group(
+            chat_id=m.chat.id,
+            media=media
+        )
 
+        await m.answer(text)
+
+    except Exception as e:
+        print("CAROUSEL ERROR:", e)
+
+        await m.answer(
+            "❌ Carousel error"
+        )
 # ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
