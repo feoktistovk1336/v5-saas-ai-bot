@@ -1,171 +1,56 @@
-import asyncio
-
-from fastapi import FastAPI
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import (
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    InputMediaPhoto
-)
-
-from config import BOT_TOKEN, ADMIN_ID
-from ai import generate_text
-from media import (
-    generate_images,
-    generate_reels_text
-)
-from db import init_db, create_user
+import aiohttp
+from aiogram.types import FSInputFile
+import os
 
 
-# ================= FASTAPI =================
-app = FastAPI()
+# ================= IMAGE GENERATION =================
+async def generate_images(prompt: str, count=5):
 
+    images = []
 
-@app.get("/")
-async def root():
-    return {"status": "ok"}
+    os.makedirs("temp", exist_ok=True)
 
+    async with aiohttp.ClientSession() as session:
 
-# ================= BOT =================
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+        for i in range(count):
 
-
-# ================= MENU =================
-menu = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="🔥 AI Post")],
-        [KeyboardButton(text="🎬 Reels")],
-        [KeyboardButton(text="🖼 Carousel")],
-        [KeyboardButton(text="💳 Upgrade")],
-        [KeyboardButton(text="👑 Admin")]
-    ],
-    resize_keyboard=True
-)
-
-
-# ================= START =================
-@dp.message(lambda m: m.text == "/start")
-async def start(m: types.Message):
-    await create_user(m.from_user.id)
-
-    await m.answer(
-        "🚀 V5 SaaS ready",
-        reply_markup=menu
-    )
-
-
-# ================= AI POST =================
-@dp.message(lambda m: m.text == "🔥 AI Post")
-async def ai_post(m: types.Message):
-
-    try:
-        text, topic = await generate_text()
-
-        await m.answer(text)
-
-    except Exception as e:
-        print("AI ERROR:", e)
-
-        await m.answer(
-            "❌ AI generation error"
-        )
-
-
-# ================= CAROUSEL =================
-@dp.message(lambda m: m.text == "🖼 Carousel")
-async def carousel(m: types.Message):
-
-    try:
-        text, topic = await generate_text()
-
-        images = await generate_images(topic, 5)
-
-        # если картинок нет
-        if not images:
-            return await m.answer(
-                "❌ Images not generated"
+            url = (
+                f"https://image.pollinations.ai/prompt/"
+                f"{prompt}%20cinematic%20{i}"
             )
 
-        media = []
+            try:
+                async with session.get(url) as r:
 
-        for img in images:
+                    if r.status == 200:
 
-            media.append(
-                InputMediaPhoto(media=img)
-            )
+                        filename = f"temp/{i}.jpg"
 
-        await bot.send_media_group(
-            chat_id=m.chat.id,
-            media=media
-        )
+                        with open(filename, "wb") as f:
+                            f.write(await r.read())
 
-        await m.answer(text)
+                        images.append(
+                            FSInputFile(filename)
+                        )
 
-    except Exception as e:
-        print("CAROUSEL ERROR:", e)
+                    else:
+                        print("IMAGE STATUS:", r.status)
 
-        await m.answer(
-            "❌ Carousel error"
-        )
+            except Exception as e:
+                print("IMAGE ERROR:", e)
+
+    return images
 
 
 # ================= REELS =================
-@dp.message(lambda m: m.text == "🎬 Reels")
-async def reels(m: types.Message):
+async def generate_reels_text(topic: str):
 
-    try:
-        text, topic = await generate_text()
+    return f"""
+🔥 VIRAL REELS SCRIPT
 
-        script = await generate_reels_text(
-            topic
-        )
+Hook: You are not ready for this AI shift...
 
-        await m.answer(script)
+Topic: {topic}
 
-    except Exception as e:
-        print("REELS ERROR:", e)
-
-        await m.answer(
-            "❌ Reels generation error"
-        )
-
-
-# ================= ADMIN =================
-@dp.message(lambda m: m.text == "👑 Admin")
-async def admin(m: types.Message):
-
-    if m.from_user.id != ADMIN_ID:
-        return await m.answer(
-            "❌ no access"
-        )
-
-    await m.answer(
-        "👑 ADMIN PANEL\n\n"
-        "/users - list users\n"
-        "/stats - system stats"
-    )
-
-
-# ================= STARTUP =================
-@app.on_event("startup")
-async def startup():
-
-    await init_db()
-
-    # удаляем webhook
-    await bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
-    # запускаем polling
-    asyncio.create_task(
-        dp.start_polling(bot)
-    )
-
-
-# ================= SHUTDOWN =================
-@app.on_event("shutdown")
-async def shutdown():
-
-    await bot.session.close()
+CTA: follow for more AI content 🚀
+"""
