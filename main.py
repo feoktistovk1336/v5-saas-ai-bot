@@ -164,18 +164,26 @@ async def reels(m: types.Message):
 
 
 # ================= UPGRADE =================
-@dp.message(lambda m: m.text == "💳 Upgrade")
+@dp.message(lambda m: m.text == "💳 Тарифы")
 async def upgrade(m: types.Message):
 
     await m.answer(
-        "💎 PRO PLAN\n\n"
-        "Unlimited AI posts\n"
-        "Unlimited carousels\n"
-        "Unlimited reels\n\n"
-        "Stripe integration soon 🚀"
+        "💎 ТАРИФЫ V5 AI\n\n"
+
+        "🆓 FREE\n"
+        "• 5 AI постов\n"
+        "• 1 карусель\n"
+        "• 1 reels\n\n"
+
+        "🚀 PRO — 990₽/мес\n"
+        "• Безлимит AI постов\n"
+        "• Безлимит каруселей\n"
+        "• AI Reels\n"
+        "• Приоритет генерации\n"
+        "• Premium AI\n\n"
+
+        "💳 Оплата появится скоро"
     )
-
-
 # ================= ADMIN =================
 @dp.message(lambda m: m.text == "👑 Admin")
 async def admin(m: types.Message):
