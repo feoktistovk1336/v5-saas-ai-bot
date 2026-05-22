@@ -37,16 +37,29 @@ dp = Dispatcher()
 # ================= MENU =================
 menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔥 AI Post")],
-        [KeyboardButton(text="🎬 Reels")],
-        [KeyboardButton(text="🖼 Carousel")],
-        [KeyboardButton(text="💳 Upgrade")],
-        [KeyboardButton(text="👑 Admin")]
+
+        [
+            KeyboardButton(text="🔥 AI Пост"),
+            KeyboardButton(text="🖼 Карусель")
+        ],
+
+        [
+            KeyboardButton(text="🎬 Reels"),
+            KeyboardButton(text="🧠 Идеи")
+        ],
+
+        [
+            KeyboardButton(text="📈 Тренды"),
+            KeyboardButton(text="💳 Тарифы")
+        ],
+
+        [
+            KeyboardButton(text="👑 Админ")
+        ]
+
     ],
     resize_keyboard=True
 )
-
-
 # ================= START =================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
