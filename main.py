@@ -126,10 +126,10 @@ async def create_ai_image(image_url, title):
 
         overlay_draw = ImageDraw.Draw(overlay)
 
-        # красивый градиент снизу
+        # мощное затемнение
         overlay_draw.rectangle(
-            [(0, 600), (1080, 1080)],
-            fill=(0, 0, 0, 150)
+            [(0, 550), (1080, 1080)],
+            fill=(0, 0, 0, 210)
         )
 
         image = Image.alpha_composite(
@@ -139,23 +139,40 @@ async def create_ai_image(image_url, title):
 
         draw = ImageDraw.Draw(image)
 
-        # шрифт
-        font = ImageFont.load_default()
+        # FONT
+        try:
+
+            font = ImageFont.truetype(
+                "arial.ttf",
+                75
+            )
+
+            small_font = ImageFont.truetype(
+                "arial.ttf",
+                35
+            )
+
+        except:
+
+            font = ImageFont.load_default()
+            small_font = ImageFont.load_default()
 
         # TITLE
+        text = f"🔥 {title.upper()[:28]}"
+
         draw.text(
-            (60, 700),
-            f"🔥 {title.upper()[:35]}",
+            (60, 680),
+            text,
             fill=(255, 255, 255),
             font=font
         )
 
         # SUBTITLE
         draw.text(
-            (60, 760),
+            (60, 820),
             "AI GENERATED CONTENT",
-            fill=(180, 255, 180),
-            font=font
+            fill=(120, 255, 120),
+            font=small_font
         )
 
         # WATERMARK
@@ -163,7 +180,7 @@ async def create_ai_image(image_url, title):
             (60, 980),
             "@v5_saas_ai_bot",
             fill=(220, 220, 220),
-            font=font
+            font=small_font
         )
 
         final_file = f"final_{random.randint(1,999999)}.png"
@@ -293,7 +310,7 @@ async def carousel(m: types.Message):
 
                 if final_image:
 
-                    await m.answer_photo(
+                    await m.answer_document(
                         photo=FSInputFile(
                             final_image
                         )
