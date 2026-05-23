@@ -1,54 +1,47 @@
-import random
-
-
-# ================= AI IMAGES =================
-AI_IMAGES = [
-
-    "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1080",
-    "https://images.unsplash.com/photo-1674027392884-7515e76d7d24?w=1080",
-    "https://images.unsplash.com/photo-1676299081847-824916de030a?w=1080",
-    "https://images.unsplash.com/photo-1675557009875-436f2f7a3d18?w=1080",
-    "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=1080",
-    "https://images.unsplash.com/photo-1686191128892-3b8d6f840a52?w=1080",
-    "https://images.unsplash.com/photo-1677442135722-5f0c7a7d2d88?w=1080"
-
-]
-
-
 # ================= GENERATE IMAGES =================
 async def generate_images(topic, count=5):
 
-    unique_images = random.sample(
-        AI_IMAGES,
-        min(count, len(AI_IMAGES))
-    )
+    images = []
 
-    return unique_images
+    styles = [
 
-
-# ================= REELS =================
-async def generate_reels_text(topic):
-
-    hooks = [
-
-        "Ты не готов к этому",
-        "AI уже меняет рынок",
-        "Большинство не знает этого",
-        "Это будущее контента",
-        "Нейросети захватывают интернет"
+        "cinematic lighting",
+        "ultra realistic",
+        "cyberpunk",
+        "futuristic AI",
+        "neon glow",
+        "instagram viral style",
+        "dark luxury",
+        "modern startup",
+        "3d render",
+        "digital future"
 
     ]
 
-    hook = random.choice(hooks)
+    for _ in range(count):
 
-    return f"""
-🎬 REELS
+        style = random.choice(styles)
 
-🔥 Хук:
-{hook}
+        seed = random.randint(
+            1,
+            99999999
+        )
 
-📌 Тема:
-{topic}
+        prompt = (
+            f"{topic}, "
+            f"{style}, "
+            f"AI business, "
+            f"viral instagram post, "
+            f"high quality, "
+            f"ultra detailed, "
+            f"4k"
+        )
 
-🚀 Подпишись для новых AI идей.
-"""
+        url = (
+            "https://image.pollinations.ai/prompt/"
+            f"{prompt}?seed={seed}&width=1080&height=1080"
+        )
+
+        images.append(url)
+
+    return images
