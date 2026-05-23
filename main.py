@@ -10,15 +10,29 @@ from PIL import (
 )
 
 from aiogram import Bot, Dispatcher, types
+
 from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
     FSInputFile
 )
 
-from config import BOT_TOKEN, ADMIN_ID
+from config import (
+    BOT_TOKEN,
+    ADMIN_ID,
+    CHANNEL_ID
+)
+
 from ai import generate_text
-from db import init_db, create_user
+
+from db import (
+    init_db,
+    create_user
+)
+
+from apscheduler.schedulers.asyncio import (
+    AsyncIOScheduler
+)
 
 
 # ================= BOT =================
