@@ -153,8 +153,8 @@ except:
 
         # ===== TITLE =====
         draw.text(
-            (60, 820),
-            title[:60],
+            (60, 760),
+            f"🔥 {title.upper()[:50]}",
             fill="white",
             font=font
         )
