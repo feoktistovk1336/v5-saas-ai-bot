@@ -1,18 +1,14 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
+class Settings(BaseSettings):
+    BOT_TOKEN: str
+    OPENAI_API_KEY: str
 
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
-CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8"
+    )
 
-BRAND_USERNAME = "@primeonix26"
 
-FREE_LIMIT = 5
-PRO_PRICE_STARS = 199
-PRO_DAYS = 30
-DB_PATH = "database.sqlite"
+settings = Settings()
