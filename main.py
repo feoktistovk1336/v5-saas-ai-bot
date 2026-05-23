@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 import aiohttp
+import requests
 
 from PIL import (
     Image,
@@ -25,6 +26,11 @@ from config import (
 
 from ai import generate_text
 
+from media import (
+    generate_images,
+    generate_reels_text
+)
+
 from db import (
     init_db,
     create_user
@@ -33,8 +39,6 @@ from db import (
 from apscheduler.schedulers.asyncio import (
     AsyncIOScheduler
 )
-
-
 # ================= BOT =================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -231,6 +235,9 @@ async def carousel(m: types.Message):
 
     try:
 
+        import os
+        import requests
+
         await m.answer(
             "🖼 Создаю AI карусель..."
         )
@@ -244,14 +251,40 @@ async def carousel(m: types.Message):
 
         print(images)
 
-        for img in images:
+        if not images:
 
-            await bot.send_photo(
-                chat_id=m.chat.id,
-                photo=img
+            return await m.answer(
+                "❌ Картинки не создались"
             )
 
-        await m.answer(text)
+        for i, img_url in enumerate(images):
+
+            try:
+
+                response = requests.get(img_url)
+
+                file_name = f"image_{i}.jpg"
+
+                with open(file_name, "wb") as f:
+                    f.write(response.content)
+
+                photo = FSInputFile(file_name)
+
+                await bot.send_photo(
+                    chat_id=m.chat.id,
+                    photo=photo
+                )
+
+                os.remove(file_name)
+
+            except Exception as img_error:
+
+                print("IMAGE ERROR:", img_error)
+
+        # отправляем текст
+        await m.answer(
+            f"🖼 AI Карусель\n\n{text}"
+        )
 
     except Exception as e:
 
