@@ -175,6 +175,19 @@ async def create_ai_image(image_url, title):
 # ================= AI POST =================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
+    user = await get_user(
+        m.from_user.id
+    )
+
+    if (
+        user[2] == "FREE"
+        and user[3] >= 5
+    ):
+
+        return await m.answer(
+            "❌ Лимит FREE тарифа.\n\n"
+            "Купи PRO для безлимита."
+        )
 
     try:
 
