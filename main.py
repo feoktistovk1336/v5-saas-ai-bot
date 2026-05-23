@@ -1,24 +1,24 @@
 import asyncio
+import os
+import random
+import aiohttp
+
+from PIL import (
+    Image,
+    ImageDraw,
+    ImageFont
+)
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import (
     ReplyKeyboardMarkup,
-    KeyboardButton
+    KeyboardButton,
+    FSInputFile
 )
 
 from config import BOT_TOKEN, ADMIN_ID
-
 from ai import generate_text
-
-from media import (
-    generate_images,
-    generate_reels_text
-)
-
-from db import (
-    init_db,
-    create_user
-)
+from db import init_db, create_user
 
 
 # ================= BOT =================
@@ -54,6 +54,119 @@ menu = ReplyKeyboardMarkup(
 )
 
 
+# ================= IMAGE GENERATOR =================
+async def generate_images(prompt: str, count=5):
+
+    images = []
+
+    os.makedirs("temp", exist_ok=True)
+
+    async with aiohttp.ClientSession() as session:
+
+        for i in range(count):
+
+            seed = random.randint(1, 999999)
+
+            filename = f"temp/{seed}.jpg"
+
+            # ================= AI IMAGE =================
+            url = (
+                f"https://image.pollinations.ai/prompt/"
+                f"beautiful%20{prompt}%20ai%20art"
+                f"?width=1024&height=1024"
+                f"&seed={seed}"
+                f"&model=flux"
+            )
+
+            try:
+
+                async with session.get(url) as r:
+
+                    # ================= FALLBACK =================
+                    if r.status != 200:
+
+                        print("POLLINATIONS FAILED:", r.status)
+
+                        fallback = (
+                            f"https://picsum.photos/seed/"
+                            f"{seed}/1024/1024"
+                        )
+
+                        async with session.get(fallback) as f:
+
+                            if f.status == 200:
+
+                                with open(filename, "wb") as img_file:
+                                    img_file.write(await f.read())
+
+                    else:
+
+                        with open(filename, "wb") as img_file:
+                            img_file.write(await r.read())
+
+                # ================= DESIGN =================
+                img = Image.open(filename)
+
+                img = img.resize((1080, 1080))
+
+                overlay = Image.new(
+                    "RGBA",
+                    img.size,
+                    (0, 0, 0, 120)
+                )
+
+                img = Image.alpha_composite(
+                    img.convert("RGBA"),
+                    overlay
+                )
+
+                draw = ImageDraw.Draw(img)
+
+                # ================= FONT =================
+                try:
+
+                    font = ImageFont.truetype(
+                        "arial.ttf",
+                        60
+                    )
+
+                except:
+
+                    font = ImageFont.load_default()
+
+                # ================= TITLE =================
+                title = prompt.upper()[:35]
+
+                draw.text(
+                    (60, 120),
+                    title,
+                    fill="white",
+                    font=font
+                )
+
+                # ================= BRAND =================
+                draw.text(
+                    (60, 950),
+                    "V5 AI SAAS",
+                    fill="white",
+                    font=font
+                )
+
+                img = img.convert("RGB")
+
+                img.save(filename)
+
+                images.append(
+                    FSInputFile(filename)
+                )
+
+            except Exception as e:
+
+                print("IMAGE ERROR:", e)
+
+    return images
+
+
 # ================= START =================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
@@ -80,7 +193,6 @@ async def ai_post(m: types.Message):
             1
         )
 
-        # если картинка есть
         if images:
 
             await m.answer_photo(
@@ -94,7 +206,7 @@ async def ai_post(m: types.Message):
 
     except Exception as e:
 
-        print("AI ERROR:", e)
+        print("AI POST ERROR:", e)
 
         await m.answer(
             "❌ Ошибка генерации поста"
@@ -120,14 +232,12 @@ async def carousel(m: types.Message):
                 "❌ Картинки не сгенерированы"
             )
 
-        # отправляем по одной картинке
         for img in images:
 
             await m.answer_photo(
                 photo=img
             )
 
-        # потом текст
         await m.answer(text)
 
     except Exception as e:
@@ -160,7 +270,7 @@ async def reels(m: types.Message):
 {text}
 
 🚀 Призыв:
-Подпишись, чтобы получать больше AI-контента.
+Подпишись на V5 AI SaaS
 """
 
         await m.answer(script)
@@ -204,9 +314,9 @@ async def trends(m: types.Message):
     )
 
 
-# ================= UPGRADE =================
+# ================= TARIFFS =================
 @dp.message(lambda m: m.text == "💳 Тарифы")
-async def upgrade(m: types.Message):
+async def tariffs(m: types.Message):
 
     await m.answer(
         "💎 ТАРИФЫ V5 AI\n\n"
@@ -249,12 +359,12 @@ async def main():
 
     await init_db()
 
-    # удаляем webhook
     await bot.delete_webhook(
         drop_pending_updates=True
     )
 
-    # запускаем polling
+    print("BOT STARTED")
+
     await dp.start_polling(bot)
 
 
