@@ -59,7 +59,7 @@ menu = ReplyKeyboardMarkup(
 )
 
 
-def wrap_text(text, max_chars=14):
+def wrap_text(text, max_chars=13):
     words = text.split()
     lines = []
     line = ""
@@ -111,54 +111,76 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 65))
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 45))
         image = Image.alpha_composite(image, overlay)
 
         draw = ImageDraw.Draw(image)
 
-        draw.rounded_rectangle(
-            [(55, 545), (1025, 1015)],
-            radius=46,
-            fill=(0, 0, 0, 215)
-        )
-
-        font_big = load_font(76)
+        font_big = load_font(72)
         font_small = load_font(34)
 
-        lines = wrap_text(f"🔥 {title.upper()}", 14)
+        card_x1 = 65
+        card_y1 = 545
+        card_x2 = 760
+        card_y2 = 1010
 
-        y = 610
-        for index, line in enumerate(lines):
+        draw.rounded_rectangle(
+            [(card_x1, card_y1), (card_x2, card_y2)],
+            radius=42,
+            fill=(5, 10, 18, 220)
+        )
+
+        clean_title = (
+            title
+            .replace("🔥", "")
+            .replace("🚀", "")
+            .replace("✅", "")
+            .replace("❌", "")
+            .replace("💡", "")
+            .strip()
+            .upper()
+        )
+
+        lines = wrap_text(clean_title, 13)
+
+        y = card_y1 + 65
+
+        for index, line in enumerate(lines[:4]):
             color = (255, 220, 40) if index == 1 else (255, 255, 255)
 
             draw.text(
-                (90, y),
+                (card_x1 + 45, y),
                 line,
                 fill=color,
                 font=font_big
             )
 
-            y += 86
+            y += 82
+
+        draw.rectangle(
+            [(card_x1 + 45, card_y2 - 125), (card_x1 + 130, card_y2 - 118)],
+            fill=(255, 210, 40)
+        )
 
         draw.text(
-            (90, 895),
-            "V5 AI SAAS",
-            fill=(120, 255, 160),
+            (card_x1 + 45, card_y2 - 90),
+            "AI CONTENT",
+            fill=(255, 255, 255),
             font=font_small
         )
 
         if show_brand:
             draw.rounded_rectangle(
-                [(90, 940), (420, 990)],
-                radius=25,
-                outline=(230, 230, 230),
+                [(card_x1 + 45, card_y2 - 55), (card_x1 + 360, card_y2 - 12)],
+                radius=20,
+                outline=(180, 180, 180),
                 width=2
             )
 
             draw.text(
-                (120, 950),
-                f"✈ {BOT_USERNAME}",
-                fill=(235, 235, 235),
+                (card_x1 + 75, card_y2 - 49),
+                BOT_USERNAME,
+                fill=(230, 230, 230),
                 font=font_small
             )
 
@@ -344,7 +366,7 @@ async def tariffs(m: types.Message):
         "💎 ТАРИФЫ PRIMEONIX AI\n\n"
         "🆓 FREE\n"
         f"• {FREE_LIMIT} генераций\n"
-        "• watermark с ботом\n\n"
+        f"• watermark с {BOT_USERNAME}\n\n"
         f"🚀 PRO — {PRO_PRICE_STARS} ⭐ / {PRO_DAYS} дней\n"
         "• Безлимит генераций\n"
         "• Без watermark\n"
@@ -368,9 +390,7 @@ async def buy_pro(m: types.Message):
     await bot.send_invoice(
         chat_id=m.chat.id,
         title="PrimeOnix AI PRO",
-        description=(
-            "Безлимитные AI посты, карусели, Reels и картинки без watermark."
-        ),
+        description="Безлимитные AI посты, карусели, Reels и картинки без watermark.",
         payload=f"pro_{m.from_user.id}",
         provider_token="",
         currency="XTR",
@@ -517,7 +537,6 @@ async def auto_on(m: types.Message):
         return
 
     AUTOPOST_ENABLED = True
-
     await m.answer("✅ Автопостинг включен")
 
 
@@ -529,7 +548,6 @@ async def auto_off(m: types.Message):
         return
 
     AUTOPOST_ENABLED = False
-
     await m.answer("❌ Автопостинг выключен")
 
 
