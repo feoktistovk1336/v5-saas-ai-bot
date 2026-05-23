@@ -171,23 +171,23 @@ async def create_ai_image(image_url, title, show_brand=True):
 
         if show_brand:
             brand_font = load_font(22)
-
             brand_text = f"made with {BOT_USERNAME}"
 
-        draw.rounded_rectangle(
-                [(card_x1 + 45, card_y2 - 52), (card_x1 + 315, card_y2 - 16)],
+            draw.rounded_rectangle(
+                [(card_x1 + 45, card_y2 - 52), (card_x1 + 330, card_y2 - 16)],
                 radius=18,
                 fill=(255, 255, 255, 28),
                 outline=(255, 255, 255, 70),
                 width=1
             )
 
-        draw.text(
+            draw.text(
                 (card_x1 + 65, card_y2 - 45),
                 brand_text,
                 fill=(210, 210, 210),
                 font=brand_font
-        )
+            )
+
         image.convert("RGB").save(
             final_file,
             quality=95
@@ -203,7 +203,6 @@ async def create_ai_image(image_url, title, show_brand=True):
     except Exception as e:
         print("CREATE IMAGE ERROR:", e)
         return None
-
 
 async def user_has_access(user_id):
     if user_id == ADMIN_ID:
