@@ -442,22 +442,23 @@ async def main():
     )
 
     print("BOT STARTED")
+
     # ================= SCHEDULE =================
+    scheduler.add_job(
+        auto_post,
+        "interval",
+        hours=6
+    )
 
-scheduler.add_job(
-    auto_post,
-    "interval",
-    hours=6
-)
+    scheduler.add_job(
+        auto_carousel,
+        "interval",
+        hours=12
+    )
 
-scheduler.add_job(
-    auto_carousel,
-    "interval",
-    hours=12
-)
+    scheduler.start()
 
-scheduler.start()
-
+    # ================= POLLING =================
     await dp.start_polling(bot)
 
 
