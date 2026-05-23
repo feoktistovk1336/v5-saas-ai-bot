@@ -91,7 +91,16 @@ async def generate_text():
 
                 data = await response.json()
 
-                text = data["choices"][0]["message"]["content"]
+print(data)
+
+if "choices" not in data:
+
+    return (
+        "🚀 AI сейчас перегружен. Попробуй позже.",
+        topic
+    )
+
+text = data["choices"][0]["message"]["content"]
 
                 return text, topic
 
