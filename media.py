@@ -7,9 +7,7 @@ async def generate_images(topic, count=5):
     for _ in range(count):
         seed = random.randint(1, 99999999)
 
-        url = (
-            f"https://picsum.photos/seed/{seed}/1080/1080"
-        )
+        url = f"https://picsum.photos/seed/{seed}/1080/1080"
 
         images.append(url)
 
