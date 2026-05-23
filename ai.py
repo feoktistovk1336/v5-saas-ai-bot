@@ -5,22 +5,15 @@ from config import GROQ_API_KEY
 from topics import TOPICS
 
 
-HOOKS = [
-    "95% людей используют AI неправильно",
-    "Ты теряешь деньги без AI",
-    "AI уже заменяет сотрудников",
-    "Этот AI инструмент меняет всё",
-    "Будущее уже наступило",
-    "Контент больше никогда не будет прежним"
-]
-
-
-CTAS = [
-    "Подпишись, чтобы не отстать от будущего.",
-    "Сохрани пост и подпишись.",
-    "Следи за AI трендами вместе с нами.",
-    "Подписывайся на PrimeOnix AI.",
-    "Начни использовать AI правильно уже сегодня."
+VISUAL_HOOKS = [
+    "AI ОТКРЫВАЕТ НОВЫЕ ВОЗМОЖНОСТИ",
+    "AI МЕНЯЕТ ПРАВИЛА ИГРЫ",
+    "БУДУЩЕЕ СОЗДАЮТ ТЕ, КТО ДЕЙСТВУЕТ",
+    "НЕЙРОСЕТИ — НОВАЯ НЕФТЬ",
+    "AI ДЕЛАЕТ БИЗНЕС БЫСТРЕЕ",
+    "АВТОМАТИЗИРУЙ СЕЙЧАС — ВЫИГРЫВАЙ ЗАВТРА",
+    "КОНТЕНТ БОЛЬШЕ НЕ ДЕЛАЮТ ВРУЧНУЮ",
+    "AI УЖЕ ЗДЕСЬ. ВОПРОС: ТЫ ГОТОВ?"
 ]
 
 
@@ -38,7 +31,7 @@ async def ask_groq(prompt, max_tokens=700):
                 "content": prompt
             }
         ],
-        "temperature": 1.1,
+        "temperature": 1.25,
         "max_tokens": max_tokens
     }
 
@@ -60,75 +53,81 @@ async def ask_groq(prompt, max_tokens=700):
 async def generate_text():
     category = random.choice(list(TOPICS.keys()))
     topic = random.choice(TOPICS[category])
-
-    hook = random.choice(HOOKS)
-    cta = random.choice(CTAS)
+    visual_title = random.choice(VISUAL_HOOKS)
 
     prompt = f"""
-Напиши вирусный Telegram пост на русском.
+Напиши мощный Telegram-пост на русском.
 
-Тема: {topic}
-Категория: {category}
+Тема:
+{topic}
+
+Главная идея для картинки:
+{visual_title}
 
 Стиль:
+— дерзко
 — короткие абзацы
 — без воды
-— современно
-— как AI creator
-— легко читается
-— цепляющий тон
+— как AI creator / SaaS founder
+— продающе
+— удерживает внимание
+— современный Telegram стиль
 
 Структура:
-1. Hook
-2. Проблема
-3. Почему это важно
-4. AI решение
-5. CTA
+1. Сильный хук
+2. Боль аудитории
+3. Почему старый подход больше не работает
+4. Как AI решает проблему
+5. Мотивационный CTA подписаться
 
-Начни с:
-{hook}
-
-В конце:
-{cta}
+Не используй длинные абзацы.
+Не пиши скучно.
+Не используй фразу "в современном мире".
 """
 
     try:
-        text = await ask_groq(prompt, 700)
+        text = await ask_groq(prompt, 800)
 
         if not text:
-            return "🚀 AI меняет рынок прямо сейчас.", topic
+            return "AI меняет рынок. Кто действует сейчас — получает преимущество.", visual_title
 
-        return text[:3500], topic
+        return text[:3500], visual_title
 
     except Exception as e:
         print("AI ERROR:", e)
-        return "🚀 AI меняет рынок прямо сейчас.", topic
+        return "AI меняет рынок. Кто действует сейчас — получает преимущество.", visual_title
 
 
 async def generate_carousel(topic):
     prompt = f"""
-Создай 5 коротких слайдов для Instagram AI carousel.
+Создай 5 слайдов для дорогой AI/SaaS Instagram-карусели.
 
 Тема:
 {topic}
 
 Формат:
-1. HOOK
-2. ПРОБЛЕМА
-3. ВАЖНОСТЬ
-4. AI РЕШЕНИЕ
-5. CTA
+Только 5 строк.
+Каждая строка — отдельный слайд.
 
-Правила:
-— каждый слайд максимум 6 слов
-— текст должен быть мощным
+Стиль текста:
+— коротко
+— мощно
+— продающе
+— максимум 5 слов
+— как заголовок на рекламном креативе
+— без нумерации
 — без пояснений
-— только строки с текстом
-— на русском
+
+Примеры стиля:
+AI ОТКРЫВАЕТ НОВЫЕ ВОЗМОЖНОСТИ
+СТАРЫЕ МЕТОДЫ УМИРАЮТ
+АВТОМАТИЗИРУЙ СЕЙЧАС
+БУДУЩЕЕ ЗА БЫСТРЫМИ
+НАЧНИ ПРЯМО СЕГОДНЯ
 """
 
     try:
-        text = await ask_groq(prompt, 300)
+        text = await ask_groq(prompt, 250)
 
         if not text:
             raise Exception("No carousel text")
@@ -141,14 +140,17 @@ async def generate_carousel(topic):
             if not line:
                 continue
 
-            for item in [
-                "1.", "2.", "3.", "4.", "5.",
-                "HOOK", "ПРОБЛЕМА", "ВАЖНОСТЬ",
-                "AI РЕШЕНИЕ", "CTA", ":"
-            ]:
-                line = line.replace(item, "")
-
-            line = line.strip()
+            line = (
+                line.replace("1.", "")
+                .replace("2.", "")
+                .replace("3.", "")
+                .replace("4.", "")
+                .replace("5.", "")
+                .replace("-", "")
+                .replace("•", "")
+                .strip()
+                .upper()
+            )
 
             if line:
                 slides.append(line)
@@ -159,9 +161,9 @@ async def generate_carousel(topic):
         print("CAROUSEL AI ERROR:", e)
 
         return [
-            "AI меняет рынок",
-            "Ты теряешь время",
-            "Конкуренты уже впереди",
-            "Автоматизируй контент",
-            "Начни прямо сейчас"
+            "AI МЕНЯЕТ ПРАВИЛА",
+            "СТАРЫЕ МЕТОДЫ УМИРАЮТ",
+            "АВТОМАТИЗИРУЙ СЕЙЧАС",
+            "ВЫИГРЫВАЙ ВРЕМЯ",
+            "НАЧНИ ПРЯМО СЕГОДНЯ"
         ]
