@@ -2,16 +2,18 @@ import random
 
 
 AI_IMAGES = [
-    "https://picsum.photos/900/900?1",
-    "https://picsum.photos/900/900?2",
-    "https://picsum.photos/900/900?3",
-    "https://picsum.photos/900/900?4",
-    "https://picsum.photos/900/900?5",
-    "https://picsum.photos/900/900?6",
-    "https://picsum.photos/900/900?7",
-    "https://picsum.photos/900/900?8",
-    "https://picsum.photos/900/900?9",
-    "https://picsum.photos/900/900?10"
+
+    "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1080",
+    "https://images.unsplash.com/photo-1674027392884-7515e76d7d24?w=1080",
+    "https://images.unsplash.com/photo-1676299081847-824916de030a?w=1080",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1080",
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1080",
+    "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1080",
+    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1080",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1080",
+    "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1080",
+    "https://images.unsplash.com/photo-1535223289827-42f1e9919769?w=1080"
+
 ]
 
 
