@@ -170,20 +170,24 @@ async def create_ai_image(image_url, title, show_brand=True):
         )
 
         if show_brand:
-            draw.rounded_rectangle(
-                [(card_x1 + 45, card_y2 - 55), (card_x1 + 365, card_y2 - 12)],
-                radius=20,
-                outline=(180, 180, 180),
-                width=2
+            brand_font = load_font(22)
+
+            brand_text = f"made with {BOT_USERNAME}"
+
+        draw.rounded_rectangle(
+                [(card_x1 + 45, card_y2 - 52), (card_x1 + 315, card_y2 - 16)],
+                radius=18,
+                fill=(255, 255, 255, 28),
+                outline=(255, 255, 255, 70),
+                width=1
             )
 
-            draw.text(
-                (card_x1 + 75, card_y2 - 49),
-                BOT_USERNAME,
-                fill=(230, 230, 230),
-                font=font_small
-            )
-
+        draw.text(
+                (card_x1 + 65, card_y2 - 45),
+                brand_text,
+                fill=(210, 210, 210),
+                font=brand_font
+        )
         image.convert("RGB").save(
             final_file,
             quality=95
