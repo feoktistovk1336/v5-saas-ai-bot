@@ -5,9 +5,7 @@ from config import GROQ_API_KEY
 from topics import TOPICS
 
 
-# ================= HOOKS =================
 HOOKS = [
-
     "95% людей используют AI неправильно",
     "Ты теряешь деньги без AI",
     "AI уже заменяет сотрудников",
@@ -15,78 +13,45 @@ HOOKS = [
     "Будущее уже наступило",
     "Большинство не понимают силу AI",
     "Через 1 год будет поздно",
-    "AI делает это вместо команды из 10 человек",
-    "Ты сильно недооцениваешь AI",
     "Контент больше никогда не будет прежним"
-
 ]
 
 
-# ================= CTA =================
 CTAS = [
-
     "Подпишись, чтобы не отстать от будущего.",
     "Сохрани пост и подпишись.",
     "Следи за AI трендами вместе с нами.",
     "Подписывайся на V5 AI SaaS.",
-    "Завтра этим будут пользоваться все.",
     "Подпишись и начни использовать AI правильно."
-
 ]
 
 
-# ================= GENERATE TEXT =================
 async def generate_text():
 
-    # категория
-    category = random.choice(
-        list(TOPICS.keys())
-    )
-
-    # тема
-    topic = random.choice(
-        TOPICS[category]
-    )
-
-    # hook
+    category = random.choice(list(TOPICS.keys()))
+    topic = random.choice(TOPICS[category])
     hook = random.choice(HOOKS)
-
-    # cta
     cta = random.choice(CTAS)
 
     prompt = f"""
 Напиши мощный вирусный Telegram пост.
 
-Тема:
-{topic}
-
-Категория:
-{category}
+Тема: {topic}
+Категория: {category}
 
 Стиль:
-— modern AI creator
-— viral Instagram style
-— TikTok style
 — короткие абзацы
-— сильные эмоции
-— ощущение будущего
+— viral Instagram / TikTok style
 — без воды
-— легко читать
+— современно
+— как AI creator
 
 Структура:
-
-1. Сильный HOOK
-2. Боль / проблема
+1. Hook
+2. Проблема
 3. Почему это важно
 4. AI решение
 5. CTA
-
-Правила:
-— НЕ пиши длинные абзацы
-— НЕ используй сложные слова
-— Делай текст как viral creator
-— Добавляй энергию
-— Делай стиль как startup founder
 
 Начни с:
 {hook}
@@ -101,25 +66,19 @@ async def generate_text():
     }
 
     json_data = {
-
         "model": "llama-3.3-70b-versatile",
-
         "messages": [
             {
                 "role": "user",
                 "content": prompt
             }
         ],
-
         "temperature": 1.2,
         "max_tokens": 700
-
     }
 
     try:
-
         async with aiohttp.ClientSession() as session:
-
             async with session.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers=headers,
@@ -128,61 +87,36 @@ async def generate_text():
 
                 data = await response.json()
 
-                print(data)
-
                 if "choices" not in data:
-
-                    return (
-                        "🚀 AI сейчас перегружен. Попробуй позже.",
-                        topic
-                    )
+                    print("AI RESPONSE ERROR:", data)
+                    return "🚀 AI сейчас перегружен. Попробуй позже.", topic
 
                 text = data["choices"][0]["message"]["content"]
-
-                # защита от слишком длинного текста
-                text = text[:3500]
-
-                return text, topic
+                return text[:3500], topic
 
     except Exception as e:
-
         print("AI ERROR:", e)
-
-        return (
-            "🚀 AI меняет рынок прямо сейчас.",
-            topic
+        return "🚀 AI меняет рынок прямо сейчас.", topic
 
 
-            # ================= GENERATE CAROUSEL =================
 async def generate_carousel(topic):
 
     prompt = f"""
-Создай Instagram AI carousel.
+Создай Instagram AI carousel на русском.
 
 Тема:
 {topic}
 
-Нужно:
+Нужно 5 коротких слайдов.
 
-5 коротких слайдов.
-
-Формат строго:
-
+Формат:
 1. HOOK
 2. ПРОБЛЕМА
 3. ПОЧЕМУ ЭТО ВАЖНО
 4. AI РЕШЕНИЕ
 5. CTA
 
-Каждый слайд:
-— максимум 8 слов
-— мощно
-— viral
-— modern
-— bold
-— как AI Instagram бренд
-
-Без описаний.
+Каждый слайд максимум 8 слов.
 Только текст слайдов.
 """
 
@@ -199,13 +133,12 @@ async def generate_carousel(topic):
                 "content": prompt
             }
         ],
-        "temperature": 1
+        "temperature": 1,
+        "max_tokens": 300
     }
 
     try:
-
         async with aiohttp.ClientSession() as session:
-
             async with session.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers=headers,
@@ -214,29 +147,27 @@ async def generate_carousel(topic):
 
                 data = await response.json()
 
+                if "choices" not in data:
+                    print("CAROUSEL AI ERROR:", data)
+                    raise Exception("No choices")
+
                 text = data["choices"][0]["message"]["content"]
 
-                slides = text.split("\n")
-
                 slides = [
-                    s.strip()
-                    for s in slides
-                    if s.strip()
+                    line.strip()
+                    for line in text.split("\n")
+                    if line.strip()
                 ]
 
                 return slides[:5]
 
     except Exception as e:
-
         print("CAROUSEL AI ERROR:", e)
 
         return [
-
             "AI меняет рынок",
-            "Ты теряешь клиентов",
+            "Ты теряешь время",
             "Конкуренты уже используют AI",
             "Автоматизируй контент",
             "Подпишись сейчас"
-
         ]
-        )
