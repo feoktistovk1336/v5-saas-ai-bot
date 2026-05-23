@@ -14,7 +14,10 @@ main_menu = ReplyKeyboardMarkup(
             KeyboardButton(text="✍️ Rewrite")
         ],
         [
-            KeyboardButton(text="💎 PRO"),
+            KeyboardButton(text="🧬 Бренд-стиль"),
+            KeyboardButton(text="💎 PRO")
+        ],
+        [
             KeyboardButton(text="👑 Админ")
         ]
     ],
