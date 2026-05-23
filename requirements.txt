@@ -5,3 +5,4 @@ Pillow
 aiosqlite
 replicate
 python-dotenv
+aiosqlite
