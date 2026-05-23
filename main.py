@@ -21,7 +21,10 @@ from config import (
     CHANNEL_ID
 )
 
-from ai import generate_text
+from ai import (
+    generate_text,
+    generate_carousel
+)
 
 from media import (
     generate_images,
@@ -257,52 +260,57 @@ async def carousel(m: types.Message):
             "🖼 Создаю AI карусель..."
         )
 
-        text, topic = await generate_text()
-        await add_generation(
-            m.from_user.id,
-            "carousel",
-            text
+        topic = random.choice([
+
+            "AI бизнес",
+            "нейросети",
+            "автоматизация",
+            "AI маркетинг",
+            "AI стартапы"
+
+        ])
+
+        slides = await generate_carousel(
+            topic
         )
 
         images = await generate_images(
             topic,
-            5
+            len(slides)
         )
-
-        print(images)
 
         if not images:
 
             return await m.answer(
-                "❌ Картинки не создались"
+                "❌ Ошибка генерации"
             )
 
-        # отправляем картинки
-        for img in images:
+        for i in range(len(slides)):
 
             try:
 
                 final_image = await create_ai_image(
-                    img,
-                    topic
+                    images[i],
+                    slides[i]
                 )
 
                 if final_image:
 
                     await m.answer_photo(
-                        photo=FSInputFile(final_image)
+                        photo=FSInputFile(
+                            final_image
+                        )
                     )
 
             except Exception as img_error:
 
                 print(
-                    "IMAGE ERROR:",
+                    "SLIDE ERROR:",
                     img_error
                 )
 
-        # отправляем текст
         await m.answer(
-            f"🖼 AI Карусель\n\n{text[:4000]}"
+            "🔥 AI карусель готова"
         )
 
     except Exception as e:
