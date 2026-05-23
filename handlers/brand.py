@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message
+from services.ai import ask_ai
 
 from services.memory import save_brand_voice, get_brand_voice, track_usage
 from services.brand_voice import build_brand_prompt
