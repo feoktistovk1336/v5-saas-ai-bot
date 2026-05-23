@@ -24,7 +24,8 @@ from config import (
     FREE_LIMIT,
     PRO_PRICE_STARS,
     PRO_DAYS,
-    BOT_USERNAME
+    BOT_USERNAME,
+    BRAND_USERNAME
 )
 
 from ai import generate_text, generate_carousel
@@ -85,9 +86,15 @@ def load_font(size):
 
 
 def clean_text(text):
-    bad = ["🔥", "🚀", "✅", "❌", "💡", "1.", "2.", "3.", "4.", "5.", "HOOK", "CTA", ":"]
+    bad = [
+        "🔥", "🚀", "✅", "❌", "💡",
+        "1.", "2.", "3.", "4.", "5.",
+        "HOOK", "CTA", ":"
+    ]
+
     for item in bad:
         text = text.replace(item, "")
+
     return text.strip().upper()
 
 
@@ -112,31 +119,32 @@ def wrap_lines(text, max_chars):
     return lines
 
 
-def fit_text(draw, text, max_width, max_height, start_size=82, min_size=36):
+def fit_title(draw, text, max_width, max_height):
     clean = clean_text(text)
 
-    for size in range(start_size, min_size - 1, -4):
+    for size in range(86, 38, -4):
         font = load_font(size)
-        max_chars = max(9, int(max_width / (size * 0.62)))
+        max_chars = max(8, int(max_width / (size * 0.58)))
         lines = wrap_lines(clean, max_chars)
 
-        line_height = int(size * 1.15)
+        line_height = int(size * 1.08)
         total_height = len(lines) * line_height
 
         widest = 0
+
         for line in lines:
             box = draw.textbbox((0, 0), line, font=font)
             widest = max(widest, box[2] - box[0])
 
         if widest <= max_width and total_height <= max_height:
-            return font, lines, line_height
+            return font, lines[:4], line_height
 
-    font = load_font(min_size)
-    return font, wrap_lines(clean, 14)[:4], int(min_size * 1.15)
+    font = load_font(42)
+    return font, wrap_lines(clean, 13)[:4], 48
 
 
 # ==================================================
-# IMAGE GENERATOR
+# IMAGE GENERATOR — PREMIUM STYLE
 # ==================================================
 async def create_ai_image(image_url, title, show_brand=True):
     try:
@@ -154,115 +162,177 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        # затемнение
-        dark = Image.new("RGBA", image.size, (0, 0, 0, 55))
+        # затемнение фона
+        dark = Image.new("RGBA", image.size, (0, 0, 0, 85))
         image = Image.alpha_composite(image, dark)
 
-        # градиент
+        # теплое свечение
+        glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow)
+
+        for r in range(520, 0, -10):
+            alpha = int(95 * (r / 520))
+            glow_draw.ellipse(
+                [(780 - r, 650 - r), (780 + r, 650 + r)],
+                fill=(255, 170, 35, alpha)
+            )
+
+        image = Image.alpha_composite(image, glow)
+
+        # темный градиент снизу
         gradient = Image.new("RGBA", image.size, (0, 0, 0, 0))
         gd = ImageDraw.Draw(gradient)
 
         for yy in range(1080):
-            alpha = int(170 * (yy / 1080))
-            gd.line([(0, yy), (1080, yy)], fill=(0, 0, 0, alpha))
+            alpha = int(185 * (yy / 1080))
+            gd.line(
+                [(0, yy), (1080, yy)],
+                fill=(0, 0, 0, alpha)
+            )
 
         image = Image.alpha_composite(image, gradient)
 
+        # карточка
+        card_x = 70
+        card_y = 150
+        card_w = 780
+        card_h = 805
+
+        # тень
+        shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        sd = ImageDraw.Draw(shadow)
+
+        sd.rounded_rectangle(
+            [
+                (card_x + 18, card_y + 20),
+                (card_x + card_w + 18, card_y + card_h + 20)
+            ],
+            radius=58,
+            fill=(0, 0, 0, 125)
+        )
+
+        shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+        image = Image.alpha_composite(image, shadow)
+
         draw = ImageDraw.Draw(image)
 
-        # разные красивые позиции
-        layouts = [
-            (70, 585, 680, 400),
-            (70, 120, 670, 410),
-            (330, 585, 680, 400),
-            (330, 120, 680, 410)
-        ]
-
-        x, y, w, h = random.choice(layouts)
-
-        # blur card background
-        card = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        cd = ImageDraw.Draw(card)
-
-        cd.rounded_rectangle(
-            [(x, y), (x + w, y + h)],
-            radius=42,
-            fill=(3, 8, 18, 215),
-            outline=(255, 255, 255, 40),
+        # glass card
+        draw.rounded_rectangle(
+            [(card_x, card_y), (card_x + card_w, card_y + card_h)],
+            radius=58,
+            fill=(3, 8, 18, 225),
+            outline=(255, 255, 255, 75),
             width=2
         )
 
-        image = Image.alpha_composite(image, card)
-        draw = ImageDraw.Draw(image)
+        font_badge = load_font(24)
+        font_small = load_font(34)
+        font_micro = load_font(23)
 
-        # текст сам подбирает размер
-        text_box_w = w - 90
-        text_box_h = h - 170
-
-        font_big, lines, line_height = fit_text(
-            draw,
-            title,
-            text_box_w,
-            text_box_h,
-            start_size=78,
-            min_size=38
+        # бейдж
+        draw.rounded_rectangle(
+            [(card_x + 55, card_y + 55), (card_x + 265, card_y + 105)],
+            radius=25,
+            fill=(255, 255, 255, 22),
+            outline=(255, 255, 255, 75),
+            width=1
         )
 
-        text_y = y + 65
+        draw.text(
+            (card_x + 82, card_y + 67),
+            "AI CREATIVE",
+            fill=(230, 230, 230),
+            font=font_badge
+        )
 
-        for i, line in enumerate(lines[:4]):
-            color = (255, 220, 40) if i == 1 else (255, 255, 255)
+        # заголовок
+        title_font, lines, line_height = fit_title(
+            draw,
+            title,
+            card_w - 120,
+            390
+        )
+
+        text_y = card_y + 165
+
+        for i, line in enumerate(lines):
+            color = (255, 220, 35) if i in [1, 2] else (255, 255, 255)
 
             draw.text(
-                (x + 45, text_y),
+                (card_x + 55, text_y),
                 line,
                 fill=color,
-                font=font_big
+                font=title_font
             )
 
             text_y += line_height
 
-        small_font = load_font(28)
-        micro_font = load_font(20)
+        # подзаголовок
+        subtitle_y = card_y + 535
 
-        # декоративная линия
-        draw.rectangle(
-            [(x + 45, y + h - 120), (x + 135, y + h - 112)],
-            fill=(255, 210, 40)
+        draw.text(
+            (card_x + 55, subtitle_y),
+            "ТЕХНОЛОГИИ МЕНЯЮТ МИР.",
+            fill=(235, 235, 235),
+            font=font_small
         )
 
         draw.text(
-            (x + 45, y + h - 88),
-            "AI CONTENT",
-            fill=(245, 245, 245),
-            font=small_font
+            (card_x + 55, subtitle_y + 48),
+            "ВОПРОС ТОЛЬКО В ТОМ,",
+            fill=(235, 235, 235),
+            font=font_small
         )
 
-        # watermark для FREE — маленький и аккуратный
-        if show_brand:
-            brand_text = f"made with {BOT_USERNAME}"
+        draw.text(
+            (card_x + 55, subtitle_y + 96),
+            "ИСПОЛЬЗУЕШЬ ЛИ ТЫ ИХ.",
+            fill=(255, 220, 35),
+            font=font_small
+        )
 
-            badge_x1 = x + 45
-            badge_y1 = y + h - 45
-            badge_x2 = badge_x1 + 250
-            badge_y2 = badge_y1 + 30
+        # линия
+        draw.rectangle(
+            [
+                (card_x + 55, card_y + card_h - 155),
+                (card_x + 165, card_y + card_h - 147)
+            ],
+            fill=(255, 210, 35)
+        )
+
+        draw.text(
+            (card_x + 55, card_y + card_h - 105),
+            "AI CONTENT",
+            fill=(255, 255, 255),
+            font=font_small
+        )
+
+        # watermark только для FREE
+        if show_brand:
+            badge_x = card_x + 55
+            badge_y = card_y + card_h - 58
+            badge_w = 315
+            badge_h = 42
 
             draw.rounded_rectangle(
-                [(badge_x1, badge_y1), (badge_x2, badge_y2)],
-                radius=15,
-                fill=(255, 255, 255, 30),
-                outline=(255, 255, 255, 60),
-                width=1
+                [(badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h)],
+                radius=21,
+                fill=(0, 0, 0, 40),
+                outline=(255, 220, 35, 180),
+                width=2
             )
 
             draw.text(
-                (badge_x1 + 14, badge_y1 + 5),
-                brand_text,
-                fill=(220, 220, 220),
-                font=micro_font
+                (badge_x + 24, badge_y + 8),
+                BRAND_USERNAME,
+                fill=(255, 255, 255),
+                font=font_micro
             )
 
-        image.convert("RGB").save(final_file, quality=96)
+        image.convert("RGB").save(
+            final_file,
+            quality=97
+        )
 
         try:
             os.remove(temp_file)
@@ -477,7 +547,7 @@ async def trends(m: types.Message):
 
 
 # ==================================================
-# TARIFFS / PAYMENTS
+# TARIFFS
 # ==================================================
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
@@ -487,7 +557,7 @@ async def tariffs(m: types.Message):
         "💎 ТАРИФЫ PRIMEONIX AI\n\n"
         "🆓 FREE\n"
         f"• {FREE_LIMIT} генераций\n"
-        f"• маленький watermark {BOT_USERNAME}\n\n"
+        f"• watermark {BRAND_USERNAME}\n\n"
         f"🚀 PRO — {PRO_PRICE_STARS} ⭐ / {PRO_DAYS} дней\n"
         "• Безлимит генераций\n"
         "• Без watermark\n"
@@ -499,6 +569,9 @@ async def tariffs(m: types.Message):
     )
 
 
+# ==================================================
+# PAYMENT
+# ==================================================
 @dp.message(lambda m: m.text == "/buypro")
 async def buy_pro(m: types.Message):
     prices = [
