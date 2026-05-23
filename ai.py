@@ -19,7 +19,7 @@ CTAS = [
     "Подпишись, чтобы не отстать от будущего.",
     "Сохрани пост и подпишись.",
     "Следи за AI трендами вместе с нами.",
-    "Подписывайся на V5 AI SaaS.",
+    "Подписывайся на PrimeOnix AI.",
     "Начни использовать AI правильно уже сегодня."
 ]
 
@@ -30,7 +30,7 @@ async def ask_groq(prompt, max_tokens=700):
         "Content-Type": "application/json"
     }
 
-    json_data = {
+    payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
             {
@@ -46,7 +46,7 @@ async def ask_groq(prompt, max_tokens=700):
         async with session.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
-            json=json_data
+            json=payload
         ) as response:
             data = await response.json()
 
@@ -75,8 +75,8 @@ async def generate_text():
 — без воды
 — современно
 — как AI creator
-— немного дерзко
 — легко читается
+— цепляющий тон
 
 Структура:
 1. Hook
@@ -121,10 +121,10 @@ async def generate_carousel(topic):
 
 Правила:
 — каждый слайд максимум 6 слов
-— текст крупный
-— viral style
+— текст должен быть мощным
 — без пояснений
 — только строки с текстом
+— на русском
 """
 
     try:
@@ -141,8 +141,12 @@ async def generate_carousel(topic):
             if not line:
                 continue
 
-            for x in ["1.", "2.", "3.", "4.", "5.", "HOOK", "ПРОБЛЕМА", "ВАЖНОСТЬ", "AI РЕШЕНИЕ", "CTA", ":"]:
-                line = line.replace(x, "")
+            for item in [
+                "1.", "2.", "3.", "4.", "5.",
+                "HOOK", "ПРОБЛЕМА", "ВАЖНОСТЬ",
+                "AI РЕШЕНИЕ", "CTA", ":"
+            ]:
+                line = line.replace(item, "")
 
             line = line.strip()
 
