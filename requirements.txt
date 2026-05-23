@@ -1,7 +1,6 @@
-aiogram>=3.15.0
-aiosqlite
+aiogram
 aiohttp
-pydantic>=2.9.0
-python-dotenv
-pillow
 apscheduler
+Pillow
+aiosqlite
+replicate
