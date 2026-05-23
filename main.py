@@ -1,3 +1,6 @@
+# ==================================================
+# IMPORTS
+# ==================================================
 import asyncio
 import os
 import random
@@ -43,23 +46,64 @@ from db import (
 )
 
 
+# ==================================================
+# BOT INIT
+# ==================================================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
 
+# ==================================================
+# MENU
+# ==================================================
 menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔥 AI Пост"), KeyboardButton(text="🖼 Карусель")],
-        [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="🧠 Идеи")],
-        [KeyboardButton(text="📈 Тренды"), KeyboardButton(text="💳 Тарифы")],
-        [KeyboardButton(text="👑 Админ"), KeyboardButton(text="🚀 Автопост")]
+        [
+            KeyboardButton(text="🔥 AI Пост"),
+            KeyboardButton(text="🖼 Карусель")
+        ],
+        [
+            KeyboardButton(text="🎬 Reels"),
+            KeyboardButton(text="🧠 Идеи")
+        ],
+        [
+            KeyboardButton(text="📈 Тренды"),
+            KeyboardButton(text="💳 Тарифы")
+        ],
+        [
+            KeyboardButton(text="👑 Админ"),
+            KeyboardButton(text="🚀 Автопост")
+        ]
     ],
     resize_keyboard=True
 )
 
 
-def wrap_text(text, max_chars=13):
+# ==================================================
+# TEXT HELPERS
+# ==================================================
+def clean_visual_text(text):
+    return (
+        text.replace("🔥", "")
+        .replace("🚀", "")
+        .replace("✅", "")
+        .replace("❌", "")
+        .replace("💡", "")
+        .replace("1.", "")
+        .replace("2.", "")
+        .replace("3.", "")
+        .replace("4.", "")
+        .replace("5.", "")
+        .replace("HOOK", "")
+        .replace("CTA", "")
+        .replace(":", "")
+        .strip()
+        .upper()
+    )
+
+
+def split_title(text, max_chars=12):
     words = text.split()
     lines = []
     line = ""
@@ -95,6 +139,9 @@ def load_font(size):
     return ImageFont.load_default()
 
 
+# ==================================================
+# IMAGE GENERATOR
+# ==================================================
 async def create_ai_image(image_url, title, show_brand=True):
     try:
         temp_file = f"temp_{random.randint(1, 999999)}.jpg"
@@ -111,86 +158,148 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 45))
-        image = Image.alpha_composite(image, overlay)
+        # общий затемняющий слой
+        dark = Image.new("RGBA", image.size, (0, 0, 0, 75))
+        image = Image.alpha_composite(image, dark)
 
-        draw = ImageDraw.Draw(image)
+        # градиент снизу
+        gradient = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        gradient_draw = ImageDraw.Draw(gradient)
 
-        font_big = load_font(72)
-        font_small = load_font(34)
-
-        card_x1 = 65
-        card_y1 = 545
-        card_x2 = 760
-        card_y2 = 1010
-
-        draw.rounded_rectangle(
-            [(card_x1, card_y1), (card_x2, card_y2)],
-            radius=42,
-            fill=(5, 10, 18, 220)
-        )
-
-        clean_title = (
-            title
-            .replace("🔥", "")
-            .replace("🚀", "")
-            .replace("✅", "")
-            .replace("❌", "")
-            .replace("💡", "")
-            .strip()
-            .upper()
-        )
-
-        lines = wrap_text(clean_title, 13)
-
-        y = card_y1 + 65
-
-        for index, line in enumerate(lines[:4]):
-            color = (255, 220, 40) if index == 1 else (255, 255, 255)
-
-            draw.text(
-                (card_x1 + 45, y),
-                line,
-                fill=color,
-                font=font_big
+        for y in range(1080):
+            alpha = int(180 * (y / 1080))
+            gradient_draw.line(
+                [(0, y), (1080, y)],
+                fill=(0, 0, 0, alpha)
             )
 
-            y += 82
+        image = Image.alpha_composite(image, gradient)
+        draw = ImageDraw.Draw(image)
 
-        draw.rectangle(
-            [(card_x1 + 45, card_y2 - 125), (card_x1 + 130, card_y2 - 118)],
-            fill=(255, 210, 40)
+        font_huge = load_font(78)
+        font_mid = load_font(36)
+        font_small = load_font(24)
+
+        clean_title = clean_visual_text(title)
+        lines = split_title(clean_title, 12)
+
+        # разные позиции карточек
+        layouts = [
+            {
+                "x": 70,
+                "y": 130,
+                "w": 680,
+                "h": 520
+            },
+            {
+                "x": 70,
+                "y": 500,
+                "w": 700,
+                "h": 500
+            },
+            {
+                "x": 310,
+                "y": 120,
+                "w": 700,
+                "h": 520
+            },
+            {
+                "x": 300,
+                "y": 500,
+                "w": 710,
+                "h": 500
+            }
+        ]
+
+        layout = random.choice(layouts)
+
+        x = layout["x"]
+        y = layout["y"]
+        w = layout["w"]
+        h = layout["h"]
+
+        # glass карточка
+        draw.rounded_rectangle(
+            [(x, y), (x + w, y + h)],
+            radius=42,
+            fill=(5, 12, 24, 215),
+            outline=(255, 255, 255, 35),
+            width=2
+        )
+
+        # маленький premium бейдж
+        draw.rounded_rectangle(
+            [(x + 38, y + 35), (x + 220, y + 82)],
+            radius=22,
+            fill=(255, 255, 255, 28),
+            outline=(255, 255, 255, 55),
+            width=1
         )
 
         draw.text(
-            (card_x1 + 45, card_y2 - 90),
-            "AI CONTENT",
-            fill=(255, 255, 255),
+            (x + 62, y + 43),
+            "AI CREATIVE",
+            fill=(210, 210, 210),
             font=font_small
         )
 
+        # заголовок
+        text_y = y + 120
+
+        for index, line in enumerate(lines):
+            color = (255, 220, 35) if index == 1 else (255, 255, 255)
+
+            draw.text(
+                (x + 45, text_y),
+                line,
+                fill=color,
+                font=font_huge
+            )
+
+            text_y += 84
+
+        # декоративная линия
+        draw.rectangle(
+            [(x + 45, y + h - 140), (x + 140, y + h - 132)],
+            fill=(255, 210, 40)
+        )
+
+        # подзаголовок
+        draw.text(
+            (x + 45, y + h - 105),
+            "СОЗДАНО ДЛЯ ВНИМАНИЯ",
+            fill=(230, 230, 230),
+            font=font_mid
+        )
+
+        # watermark только для FREE
         if show_brand:
-            brand_font = load_font(22)
             brand_text = f"made with {BOT_USERNAME}"
 
+            badge_w = 280
+            badge_h = 38
+
             draw.rounded_rectangle(
-                [(card_x1 + 45, card_y2 - 52), (card_x1 + 330, card_y2 - 16)],
-                radius=18,
-                fill=(255, 255, 255, 28),
-                outline=(255, 255, 255, 70),
+                [
+                    (x + 45, y + h - 58),
+                    (x + 45 + badge_w, y + h - 58 + badge_h)
+                ],
+                radius=19,
+                fill=(255, 255, 255, 24),
+                outline=(255, 255, 255, 60),
                 width=1
             )
 
             draw.text(
-                (card_x1 + 65, card_y2 - 45),
+                (x + 65, y + h - 51),
                 brand_text,
-                fill=(210, 210, 210),
-                font=brand_font
+                fill=(230, 230, 230),
+                font=font_small
             )
 
         image.convert("RGB").save(
             final_file,
-            quality=95
+            quality=96
         )
 
         try:
@@ -204,6 +313,10 @@ async def create_ai_image(image_url, title, show_brand=True):
         print("CREATE IMAGE ERROR:", e)
         return None
 
+
+# ==================================================
+# ACCESS HELPERS
+# ==================================================
 async def user_has_access(user_id):
     if user_id == ADMIN_ID:
         return True
@@ -236,6 +349,9 @@ async def setup_autopost_job():
     )
 
 
+# ==================================================
+# START
+# ==================================================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
     await create_user(m.from_user.id)
@@ -247,6 +363,9 @@ async def start(m: types.Message):
     )
 
 
+# ==================================================
+# AI POST
+# ==================================================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
     try:
@@ -273,16 +392,26 @@ async def ai_post(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(photo=FSInputFile(final_image))
+                await m.answer_photo(
+                    photo=FSInputFile(final_image)
+                )
 
         await m.answer(text[:4000])
-        await add_generation(m.from_user.id, "post", text)
+
+        await add_generation(
+            m.from_user.id,
+            "post",
+            text
+        )
 
     except Exception as e:
         print("AI POST ERROR:", e)
         await m.answer("❌ Ошибка генерации поста")
 
 
+# ==================================================
+# CAROUSEL
+# ==================================================
 @dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
     try:
@@ -317,9 +446,16 @@ async def carousel(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(photo=FSInputFile(final_image))
+                await m.answer_photo(
+                    photo=FSInputFile(final_image)
+                )
 
-        await add_generation(m.from_user.id, "carousel", topic)
+        await add_generation(
+            m.from_user.id,
+            "carousel",
+            topic
+        )
+
         await m.answer("🔥 AI карусель готова")
 
     except Exception as e:
@@ -327,6 +463,9 @@ async def carousel(m: types.Message):
         await m.answer("❌ Ошибка карусели")
 
 
+# ==================================================
+# REELS
+# ==================================================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
     try:
@@ -341,14 +480,24 @@ async def reels(m: types.Message):
         text, topic = await generate_text()
         script = await generate_reels_text(topic)
 
-        await m.answer(f"{script}\n\n{text[:2000]}")
-        await add_generation(m.from_user.id, "reels", script)
+        await m.answer(
+            f"{script}\n\n{text[:2000]}"
+        )
+
+        await add_generation(
+            m.from_user.id,
+            "reels",
+            script
+        )
 
     except Exception as e:
         print("REELS ERROR:", e)
         await m.answer("❌ Ошибка генерации Reels")
 
 
+# ==================================================
+# IDEAS
+# ==================================================
 @dp.message(lambda m: m.text == "🧠 Идеи")
 async def ideas(m: types.Message):
     ideas_list = [
@@ -370,6 +519,9 @@ async def ideas(m: types.Message):
     )
 
 
+# ==================================================
+# TRENDS
+# ==================================================
 @dp.message(lambda m: m.text == "📈 Тренды")
 async def trends(m: types.Message):
     await m.answer(
@@ -383,6 +535,9 @@ async def trends(m: types.Message):
     )
 
 
+# ==================================================
+# TARIFFS
+# ==================================================
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
     pro = await is_pro(m.from_user.id)
@@ -403,6 +558,9 @@ async def tariffs(m: types.Message):
     )
 
 
+# ==================================================
+# PAYMENT
+# ==================================================
 @dp.message(lambda m: m.text == "/buypro")
 async def buy_pro(m: types.Message):
     prices = [
@@ -432,7 +590,10 @@ async def pre_checkout_query(query: PreCheckoutQuery):
 async def successful_payment(m: types.Message):
     payment = m.successful_payment
 
-    await set_pro(m.from_user.id, PRO_DAYS)
+    await set_pro(
+        m.from_user.id,
+        PRO_DAYS
+    )
 
     await add_payment(
         m.from_user.id,
@@ -447,6 +608,9 @@ async def successful_payment(m: types.Message):
     )
 
 
+# ==================================================
+# ADMIN
+# ==================================================
 @dp.message(lambda m: m.text == "👑 Админ")
 async def admin(m: types.Message):
     if m.from_user.id != ADMIN_ID:
@@ -470,6 +634,9 @@ async def admin(m: types.Message):
     )
 
 
+# ==================================================
+# AUTOPOST MENU
+# ==================================================
 @dp.message(lambda m: m.text == "🚀 Автопост")
 async def autopost_menu(m: types.Message):
     if m.from_user.id != ADMIN_ID:
@@ -491,6 +658,9 @@ async def autopost_menu(m: types.Message):
     )
 
 
+# ==================================================
+# AUTOPOST FUNCTION
+# ==================================================
 async def auto_post():
     if not await is_autopost_enabled():
         print("AUTOPOST OFF")
@@ -524,6 +694,9 @@ async def auto_post():
         print("AUTO POST ERROR:", e)
 
 
+# ==================================================
+# AUTOPOST COMMANDS
+# ==================================================
 @dp.message(lambda m: m.text == "/postnow")
 async def post_now(m: types.Message):
     if m.from_user.id != ADMIN_ID:
@@ -567,7 +740,11 @@ async def auto_on(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting("autopost_enabled", "1")
+    await set_setting(
+        "autopost_enabled",
+        "1"
+    )
+
     await m.answer("✅ Автопостинг включен")
 
 
@@ -576,7 +753,11 @@ async def auto_off(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting("autopost_enabled", "0")
+    await set_setting(
+        "autopost_enabled",
+        "0"
+    )
+
     await m.answer("❌ Автопостинг выключен")
 
 
@@ -585,9 +766,15 @@ async def set_auto_interval(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    hours = int(m.text.replace("/auto", ""))
+    hours = int(
+        m.text.replace("/auto", "")
+    )
 
-    await set_setting("autopost_hours", str(hours))
+    await set_setting(
+        "autopost_hours",
+        str(hours)
+    )
+
     await setup_autopost_job()
 
     await m.answer(
@@ -595,6 +782,9 @@ async def set_auto_interval(m: types.Message):
     )
 
 
+# ==================================================
+# STARTUP
+# ==================================================
 async def on_startup():
     await init_db()
 
@@ -609,6 +799,9 @@ async def on_startup():
     print("БОТ ЗАПУЩЕН")
 
 
+# ==================================================
+# MAIN
+# ==================================================
 async def main():
     await on_startup()
     await dp.start_polling(bot)
