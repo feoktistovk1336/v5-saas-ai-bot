@@ -2,6 +2,7 @@ import aiohttp
 import random
 
 from config import GROQ_API_KEY
+from topics import TOPICS
 
 
 TOPICS = [
