@@ -384,11 +384,14 @@ async def auto_post():
         if images:
 
             await bot.send_photo(
-                chat_id=CHANNEL_ID,
-                photo=images[0],
-                caption=text
-            )
+    chat_id=CHANNEL_ID,
+    photo=images[0]
+)
 
+await bot.send_message(
+    chat_id=CHANNEL_ID,
+    text=text
+)
         else:
 
             await bot.send_message(
