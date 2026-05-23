@@ -1,3 +1,4 @@
+import time
 import aiosqlite
 
 from config import DB_PATH
@@ -10,7 +11,8 @@ async def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
             plan TEXT DEFAULT 'FREE',
-            generations INTEGER DEFAULT 0
+            generations INTEGER DEFAULT 0,
+            pro_until INTEGER DEFAULT 0
         )
         """)
 
@@ -19,7 +21,19 @@ async def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             type TEXT,
-            content TEXT
+            content TEXT,
+            created_at INTEGER
+        )
+        """)
+
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            amount INTEGER,
+            currency TEXT,
+            charge_id TEXT,
+            created_at INTEGER
         )
         """)
 
@@ -29,11 +43,47 @@ async def init_db():
 async def create_user(user_id):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            """
-            INSERT OR IGNORE INTO users (user_id)
-            VALUES (?)
-            """,
+            "INSERT OR IGNORE INTO users (user_id) VALUES (?)",
             (user_id,)
+        )
+        await db.commit()
+
+
+async def get_user(user_id):
+    await create_user(user_id)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT user_id, plan, generations, pro_until FROM users WHERE user_id = ?",
+            (user_id,)
+        )
+
+        return await cursor.fetchone()
+
+
+async def is_pro(user_id):
+    user = await get_user(user_id)
+
+    if not user:
+        return False
+
+    plan = user[1]
+    pro_until = user[3] or 0
+
+    return plan == "PRO" and pro_until > int(time.time())
+
+
+async def set_pro(user_id, days=30):
+    pro_until = int(time.time()) + days * 24 * 60 * 60
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            UPDATE users
+            SET plan = 'PRO', pro_until = ?
+            WHERE user_id = ?
+            """,
+            (pro_until, user_id)
         )
 
         await db.commit()
@@ -43,10 +93,10 @@ async def add_generation(user_id, gen_type, content):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
-            INSERT INTO generations (user_id, type, content)
-            VALUES (?, ?, ?)
+            INSERT INTO generations (user_id, type, content, created_at)
+            VALUES (?, ?, ?, ?)
             """,
-            (user_id, gen_type, content)
+            (user_id, gen_type, content, int(time.time()))
         )
 
         await db.execute(
@@ -61,6 +111,30 @@ async def add_generation(user_id, gen_type, content):
         await db.commit()
 
 
+async def add_payment(user_id, amount, currency, charge_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO payments (user_id, amount, currency, charge_id, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, amount, currency, charge_id, int(time.time()))
+        )
+
+        await db.commit()
+
+
+async def can_generate(user_id, free_limit):
+    user = await get_user(user_id)
+
+    if await is_pro(user_id):
+        return True
+
+    generations = user[2] or 0
+
+    return generations < free_limit
+
+
 async def get_stats():
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("SELECT COUNT(*) FROM users")
@@ -69,4 +143,7 @@ async def get_stats():
         cursor = await db.execute("SELECT COUNT(*) FROM generations")
         gens = await cursor.fetchone()
 
-        return users[0], gens[0]
+        cursor = await db.execute("SELECT COUNT(*) FROM payments")
+        payments = await cursor.fetchone()
+
+        return users[0], gens[0], payments[0]
