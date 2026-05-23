@@ -113,10 +113,29 @@ async def create_ai_image(image_url, title):
         draw = ImageDraw.Draw(image)
 
         # overlay
-        draw.rectangle(
-            [(0, 700), (1080, 1080)],
-            fill=(0, 0, 0)
-        )
+        # создаем overlay
+overlay = Image.new(
+    "RGBA",
+    image.size,
+    (0, 0, 0, 0)
+)
+
+overlay_draw = ImageDraw.Draw(overlay)
+
+# полупрозрачный градиент
+overlay_draw.rectangle(
+    [(0, 650), (1080, 1080)],
+    fill=(0, 0, 0, 140)
+)
+
+# объединяем
+image = image.convert("RGBA")
+image = Image.alpha_composite(
+    image,
+    overlay
+)
+
+draw = ImageDraw.Draw(image)
 
         font = ImageFont.load_default()
 
