@@ -151,4 +151,92 @@ async def generate_text():
         return (
             "🚀 AI меняет рынок прямо сейчас.",
             topic
+
+
+            # ================= GENERATE CAROUSEL =================
+async def generate_carousel(topic):
+
+    prompt = f"""
+Создай Instagram AI carousel.
+
+Тема:
+{topic}
+
+Нужно:
+
+5 коротких слайдов.
+
+Формат строго:
+
+1. HOOK
+2. ПРОБЛЕМА
+3. ПОЧЕМУ ЭТО ВАЖНО
+4. AI РЕШЕНИЕ
+5. CTA
+
+Каждый слайд:
+— максимум 8 слов
+— мощно
+— viral
+— modern
+— bold
+— как AI Instagram бренд
+
+Без описаний.
+Только текст слайдов.
+"""
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    json_data = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 1
+    }
+
+    try:
+
+        async with aiohttp.ClientSession() as session:
+
+            async with session.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=json_data
+            ) as response:
+
+                data = await response.json()
+
+                text = data["choices"][0]["message"]["content"]
+
+                slides = text.split("\n")
+
+                slides = [
+                    s.strip()
+                    for s in slides
+                    if s.strip()
+                ]
+
+                return slides[:5]
+
+    except Exception as e:
+
+        print("CAROUSEL AI ERROR:", e)
+
+        return [
+
+            "AI меняет рынок",
+            "Ты теряешь клиентов",
+            "Конкуренты уже используют AI",
+            "Автоматизируй контент",
+            "Подпишись сейчас"
+
+        ]
         )
