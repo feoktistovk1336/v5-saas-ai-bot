@@ -535,11 +535,12 @@ async def main():
 
     try:
 
-    await dp.start_polling(bot)
+        await dp.start_polling(bot)
 
-except Exception as e:
+    except Exception as e:
 
-    print("POLLING ERROR:", e)
+        print("POLLING ERROR:", e)
+
 
 if __name__ == "__main__":
 
