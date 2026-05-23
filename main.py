@@ -1,7 +1,6 @@
 import asyncio
 import os
 import random
-import aiohttp
 
 from PIL import (
     Image,
@@ -13,8 +12,7 @@ from aiogram import Bot, Dispatcher, types
 
 from aiogram.types import (
     ReplyKeyboardMarkup,
-    KeyboardButton,
-    FSInputFile
+    KeyboardButton,  
 )
 
 from config import (
