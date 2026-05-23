@@ -142,8 +142,8 @@ async def create_ai_image(image_url, title):
 
         draw = ImageDraw.Draw(image)
 
-        # font
-try:
+     # font
+font = ImageFont.load_default()
 
     font = ImageFont.truetype(
         "arial.ttf",
