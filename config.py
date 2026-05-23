@@ -11,6 +11,8 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
 
 BOT_USERNAME = os.getenv("BOT_USERNAME", "primeonixbot")
 
+BRAND_USERNAME = "@primeonix26"
+
 DB_PATH = "database.db"
 
 FREE_LIMIT = 5
