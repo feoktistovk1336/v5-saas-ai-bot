@@ -32,16 +32,20 @@ async def generate_images(topic, count=5):
             9999999
         )
 
+        # короткий prompt = стабильнее
         prompt = (
-    f"{topic}, "
-    f"{style}, "
-    f"instagram carousel, "
-    f"modern digital art"
-)
+            f"{topic}, "
+            f"{style}, "
+            f"instagram carousel, "
+            f"digital art"
+        )
 
         url = (
             "https://image.pollinations.ai/prompt/"
-            f"{prompt}?seed={seed}"
+            f"{prompt}"
+            f"?seed={seed}"
+            f"&width=1024"
+            f"&height=1024"
         )
 
         images.append(url)
@@ -74,7 +78,7 @@ async def generate_reels_text(topic):
 {topic}
 
 🧠 Сценарий:
-Расскажи коротко проблему.
+Расскажи проблему.
 Покажи AI решение.
 Добавь вау-эффект.
 Сделай сильный CTA.
