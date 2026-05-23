@@ -63,7 +63,6 @@ menu = ReplyKeyboardMarkup(
         [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="📅 Контент-план")],
         [KeyboardButton(text="🧠 Идеи"), KeyboardButton(text="📈 Тренды")],
         [KeyboardButton(text="💳 Тарифы"), KeyboardButton(text="👑 Админ")],
-        [KeyboardButton(text="🚀 Автопост")]
     ],
     resize_keyboard=True
 )
