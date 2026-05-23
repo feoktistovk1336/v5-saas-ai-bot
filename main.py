@@ -33,7 +33,8 @@ from config import (
 from ai import (
     generate_text,
     generate_carousel,
-    generate_content_plan
+    generate_content_plan,
+    rewrite_text
 )
 
 from media import generate_images, generate_reels_text
@@ -55,14 +56,42 @@ from db import (
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+rewrite_mode = {}
+rewrite_waiting = {}
 
 
-menu = ReplyKeyboardMarkup(
+main_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔥 AI Пост"), KeyboardButton(text="🖼 Карусель")],
-        [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="📅 Контент-план")],
-        [KeyboardButton(text="🧠 Идеи"), KeyboardButton(text="📈 Тренды")],
-        [KeyboardButton(text="💳 Тарифы"), KeyboardButton(text="👑 Админ")],
+        [
+            KeyboardButton(text="📦 Контент"),
+            KeyboardButton(text="✍️ Rewrite")
+        ],
+        [
+            KeyboardButton(text="💎 PRO"),
+            KeyboardButton(text="👑 Админ")
+        ]
+    ],
+    resize_keyboard=True
+)
+
+
+content_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="🔥 AI Пост"),
+            KeyboardButton(text="🖼 Карусель")
+        ],
+        [
+            KeyboardButton(text="🎬 Reels"),
+            KeyboardButton(text="📅 Контент-план")
+        ],
+        [
+            KeyboardButton(text="🧠 Идеи"),
+            KeyboardButton(text="📈 Тренды")
+        ],
+        [
+            KeyboardButton(text="⬅️ Назад")
+        ]
     ],
     resize_keyboard=True
 )
