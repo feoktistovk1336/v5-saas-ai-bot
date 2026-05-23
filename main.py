@@ -1,23 +1,24 @@
 import asyncio
+import os
 import random
 import aiohttp
 
 from PIL import Image, ImageDraw, ImageFont
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config import BOT_TOKEN, ADMIN_ID, CHANNEL_ID
 from ai import generate_text, generate_carousel
 from media import generate_images, generate_reels_text
-from db import init_db, create_user
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from db import init_db, create_user, add_generation, get_stats
 
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
+
+AUTOPOST_ENABLED = True
 
 
 menu = ReplyKeyboardMarkup(
@@ -33,87 +34,99 @@ menu = ReplyKeyboardMarkup(
 
 def wrap_text(text, max_chars=16):
     words = text.split()
-    lines = []
-    line = ""
+    lines, line = [], ""
 
     for word in words:
-        if len(line + " " + word) <= max_chars:
-            line += " " + word
+        test = f"{line} {word}".strip()
+        if len(test) <= max_chars:
+            line = test
         else:
-            lines.append(line.strip())
+            lines.append(line)
             line = word
 
     if line:
-        lines.append(line.strip())
+        lines.append(line)
 
-    return lines[:3]
+    return lines[:4]
+
+
+def load_font(size):
+    paths = [
+        "Montserrat-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ]
+
+    for path in paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except:
+            pass
+
+    return ImageFont.load_default()
 
 
 async def create_ai_image(image_url, title):
     try:
         temp_file = f"temp_{random.randint(1, 999999)}.jpg"
+        final_file = f"final_{random.randint(1, 999999)}.jpg"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(image_url) as response:
                 if response.status != 200:
                     return None
 
-                content = await response.read()
-
                 with open(temp_file, "wb") as f:
-                    f.write(content)
+                    f.write(await response.read())
 
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 70))
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 80))
         image = Image.alpha_composite(image, overlay)
 
         draw = ImageDraw.Draw(image)
 
-        try:
-            font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                72
-            )
-            small_font = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                34
-            )
-        except:
-            font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
-
         draw.rounded_rectangle(
-            [(45, 600), (1035, 1015)],
-            radius=42,
-            fill=(0, 0, 0, 190)
+            [(50, 560), (1030, 1015)],
+            radius=45,
+            fill=(0, 0, 0, 205)
         )
 
-        lines = wrap_text(f"🔥 {title.upper()}", 16)
+        font = load_font(78)
+        small_font = load_font(34)
 
-        y = 660
+        lines = wrap_text(f"🔥 {title.upper()}", 15)
+
+        y = 630
         for line in lines:
-            draw.text((80, y), line, fill=(255, 255, 255), font=font)
-            y += 90
+            draw.text(
+                (85, y),
+                line,
+                fill=(255, 255, 255),
+                font=font
+            )
+            y += 88
 
         draw.text(
-            (80, 925),
+            (85, 920),
             "V5 AI SAAS",
             fill=(120, 255, 160),
             font=small_font
         )
 
         draw.text(
-            (680, 925),
+            (650, 920),
             "@v5_saas_ai_bot",
-            fill=(220, 220, 220),
+            fill=(230, 230, 230),
             font=small_font
         )
 
-        final_file = f"final_{random.randint(1, 999999)}.jpg"
-
         image.convert("RGB").save(final_file, quality=95)
+
+        try:
+            os.remove(temp_file)
+        except:
+            pass
 
         return final_file
 
@@ -139,6 +152,8 @@ async def ai_post(m: types.Message):
         await m.answer("🔥 Создаю AI пост...")
 
         text, topic = await generate_text()
+        await add_generation(m.from_user.id, "post", text)
+
         images = await generate_images(topic, 1)
 
         if images:
@@ -176,6 +191,8 @@ async def carousel(m: types.Message):
             if final_image:
                 await m.answer_photo(photo=FSInputFile(final_image))
 
+        await add_generation(m.from_user.id, "carousel", topic)
+
         await m.answer("🔥 AI карусель готова")
 
     except Exception as e:
@@ -190,6 +207,8 @@ async def reels(m: types.Message):
 
         text, topic = await generate_text()
         script = await generate_reels_text(topic)
+
+        await add_generation(m.from_user.id, "reels", script)
 
         await m.answer(f"{script}\n\n{text[:2000]}")
 
@@ -206,19 +225,14 @@ async def ideas(m: types.Message):
         "AI vs дизайнеры",
         "Лучшие GPT для работы",
         "Как автоматизировать контент",
-        "Как AI меняет маркетинг",
-        "Нейросети для TikTok",
+        "AI для TikTok",
         "AI для Instagram",
-        "Будущее AI бизнеса",
         "Как создать AI SaaS"
     ]
 
     random.shuffle(ideas_list)
 
-    await m.answer(
-        "🧠 AI ИДЕИ\n\n" +
-        "\n".join(ideas_list[:5])
-    )
+    await m.answer("🧠 AI ИДЕИ\n\n" + "\n".join(ideas_list[:5]))
 
 
 @dp.message(lambda m: m.text == "📈 Тренды")
@@ -228,11 +242,9 @@ async def trends(m: types.Message):
         "🔥 AI агенты\n"
         "🔥 TikTok automation\n"
         "🔥 Faceless YouTube\n"
-        "🔥 AI инфобизнес\n"
-        "🔥 AI видео\n"
         "🔥 AI SaaS\n"
-        "🔥 AI маркетинг\n"
-        "🔥 AI контент"
+        "🔥 AI видео\n"
+        "🔥 AI маркетинг"
     )
 
 
@@ -241,13 +253,12 @@ async def tariffs(m: types.Message):
     await m.answer(
         "💎 ТАРИФЫ V5 AI\n\n"
         "🆓 FREE\n"
-        "• 5 AI постов\n"
-        "• 1 карусель\n"
-        "• 1 reels\n\n"
+        "• AI посты\n"
+        "• Карусели\n"
+        "• Reels scripts\n\n"
         "🚀 PRO — 990₽/мес\n"
-        "• Безлимит AI постов\n"
-        "• Безлимит каруселей\n"
-        "• AI Reels\n"
+        "• Безлимит\n"
+        "• Автопостинг\n"
         "• Premium AI\n\n"
         "💳 Оплата скоро появится"
     )
@@ -258,10 +269,17 @@ async def admin(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return await m.answer("❌ Нет доступа")
 
+    users, gens = await get_stats()
+
     await m.answer(
         "👑 ADMIN PANEL\n\n"
-        "/postnow — пост сейчас\n"
-        "/autostatus — статус автопоста"
+        f"👥 Пользователей: {users}\n"
+        f"🧠 Генераций: {gens}\n\n"
+        "/postnow — выложить сейчас\n"
+        "/testpost — тест поста\n"
+        "/autostatus — статус\n"
+        "/autoon — включить\n"
+        "/autooff — выключить"
     )
 
 
@@ -272,13 +290,21 @@ async def autopost_menu(m: types.Message):
 
     await m.answer(
         "🚀 АВТОПОСТИНГ\n\n"
-        "⏰ Сейчас: каждые 3 часа\n\n"
+        f"Статус: {'✅ включен' if AUTOPOST_ENABLED else '❌ выключен'}\n"
+        "⏰ Интервал: каждые 3 часа\n\n"
         "/postnow — выложить сейчас\n"
+        "/testpost — тест\n"
         "/autostatus — статус"
     )
 
 
 async def auto_post():
+    global AUTOPOST_ENABLED
+
+    if not AUTOPOST_ENABLED:
+        print("AUTOPOST OFF")
+        return
+
     try:
         text, topic = await generate_text()
         images = await generate_images(topic, 1)
@@ -310,18 +336,51 @@ async def post_now(m: types.Message):
 
     await m.answer("🚀 Публикую пост...")
     await auto_post()
-    await m.answer("✅ Пост опубликован")
+    await m.answer("✅ Готово")
+
+
+@dp.message(lambda m: m.text == "/testpost")
+async def test_post(m: types.Message):
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    text, topic = await generate_text()
+
+    await m.answer(
+        f"🧪 ТЕСТ ПОСТА\n\n"
+        f"📌 Тема: {topic}\n\n"
+        f"{text[:3000]}"
+    )
 
 
 @dp.message(lambda m: m.text == "/autostatus")
 async def auto_status(m: types.Message):
+    await m.answer(
+        f"🚀 Автопостинг: {'✅ включен' if AUTOPOST_ENABLED else '❌ выключен'}\n"
+        "⏰ Интервал: 3 часа"
+    )
+
+
+@dp.message(lambda m: m.text == "/autoon")
+async def auto_on(m: types.Message):
+    global AUTOPOST_ENABLED
+
     if m.from_user.id != ADMIN_ID:
         return
 
-    await m.answer(
-        "✅ Автопостинг активен\n"
-        "⏰ Интервал: 3 часа"
-    )
+    AUTOPOST_ENABLED = True
+    await m.answer("✅ Автопостинг включен")
+
+
+@dp.message(lambda m: m.text == "/autooff")
+async def auto_off(m: types.Message):
+    global AUTOPOST_ENABLED
+
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    AUTOPOST_ENABLED = False
+    await m.answer("❌ Автопостинг выключен")
 
 
 async def on_startup():
