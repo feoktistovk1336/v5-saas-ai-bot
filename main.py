@@ -1,12 +1,9 @@
-# ==================================================
-# IMPORTS
-# ==================================================
 import asyncio
 import os
 import random
 import aiohttp
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import (
@@ -14,7 +11,8 @@ from aiogram.types import (
     KeyboardButton,
     FSInputFile,
     LabeledPrice,
-    PreCheckoutQuery
+    PreCheckoutQuery,
+    BotCommand
 )
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -47,7 +45,7 @@ from db import (
 
 
 # ==================================================
-# BOT INIT
+# BOT
 # ==================================================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -55,55 +53,45 @@ scheduler = AsyncIOScheduler()
 
 
 # ==================================================
-# MENU
+# KEYBOARD
 # ==================================================
 menu = ReplyKeyboardMarkup(
     keyboard=[
-        [
-            KeyboardButton(text="🔥 AI Пост"),
-            KeyboardButton(text="🖼 Карусель")
-        ],
-        [
-            KeyboardButton(text="🎬 Reels"),
-            KeyboardButton(text="🧠 Идеи")
-        ],
-        [
-            KeyboardButton(text="📈 Тренды"),
-            KeyboardButton(text="💳 Тарифы")
-        ],
-        [
-            KeyboardButton(text="👑 Админ"),
-            KeyboardButton(text="🚀 Автопост")
-        ]
+        [KeyboardButton(text="🔥 AI Пост"), KeyboardButton(text="🖼 Карусель")],
+        [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="🧠 Идеи")],
+        [KeyboardButton(text="📈 Тренды"), KeyboardButton(text="💳 Тарифы")],
+        [KeyboardButton(text="👑 Админ"), KeyboardButton(text="🚀 Автопост")]
     ],
     resize_keyboard=True
 )
 
 
 # ==================================================
-# TEXT HELPERS
+# FONTS / TEXT
 # ==================================================
-def clean_visual_text(text):
-    return (
-        text.replace("🔥", "")
-        .replace("🚀", "")
-        .replace("✅", "")
-        .replace("❌", "")
-        .replace("💡", "")
-        .replace("1.", "")
-        .replace("2.", "")
-        .replace("3.", "")
-        .replace("4.", "")
-        .replace("5.", "")
-        .replace("HOOK", "")
-        .replace("CTA", "")
-        .replace(":", "")
-        .strip()
-        .upper()
-    )
+def load_font(size):
+    paths = [
+        "Montserrat-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ]
+
+    for path in paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            pass
+
+    return ImageFont.load_default()
 
 
-def split_title(text, max_chars=12):
+def clean_text(text):
+    bad = ["🔥", "🚀", "✅", "❌", "💡", "1.", "2.", "3.", "4.", "5.", "HOOK", "CTA", ":"]
+    for item in bad:
+        text = text.replace(item, "")
+    return text.strip().upper()
+
+
+def wrap_lines(text, max_chars):
     words = text.split()
     lines = []
     line = ""
@@ -121,22 +109,30 @@ def split_title(text, max_chars=12):
     if line:
         lines.append(line)
 
-    return lines[:4]
+    return lines
 
 
-def load_font(size):
-    paths = [
-        "Montserrat-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    ]
+def fit_text(draw, text, max_width, max_height, start_size=82, min_size=36):
+    clean = clean_text(text)
 
-    for path in paths:
-        try:
-            return ImageFont.truetype(path, size)
-        except Exception:
-            pass
+    for size in range(start_size, min_size - 1, -4):
+        font = load_font(size)
+        max_chars = max(9, int(max_width / (size * 0.62)))
+        lines = wrap_lines(clean, max_chars)
 
-    return ImageFont.load_default()
+        line_height = int(size * 1.15)
+        total_height = len(lines) * line_height
+
+        widest = 0
+        for line in lines:
+            box = draw.textbbox((0, 0), line, font=font)
+            widest = max(widest, box[2] - box[0])
+
+        if widest <= max_width and total_height <= max_height:
+            return font, lines, line_height
+
+    font = load_font(min_size)
+    return font, wrap_lines(clean, 14)[:4], int(min_size * 1.15)
 
 
 # ==================================================
@@ -158,149 +154,115 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        # общий затемняющий слой
-        dark = Image.new("RGBA", image.size, (0, 0, 0, 75))
+        # затемнение
+        dark = Image.new("RGBA", image.size, (0, 0, 0, 55))
         image = Image.alpha_composite(image, dark)
 
-        # градиент снизу
+        # градиент
         gradient = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        gradient_draw = ImageDraw.Draw(gradient)
+        gd = ImageDraw.Draw(gradient)
 
-        for y in range(1080):
-            alpha = int(180 * (y / 1080))
-            gradient_draw.line(
-                [(0, y), (1080, y)],
-                fill=(0, 0, 0, alpha)
-            )
+        for yy in range(1080):
+            alpha = int(170 * (yy / 1080))
+            gd.line([(0, yy), (1080, yy)], fill=(0, 0, 0, alpha))
 
         image = Image.alpha_composite(image, gradient)
+
         draw = ImageDraw.Draw(image)
 
-        font_huge = load_font(78)
-        font_mid = load_font(36)
-        font_small = load_font(24)
-
-        clean_title = clean_visual_text(title)
-        lines = split_title(clean_title, 12)
-
-        # разные позиции карточек
+        # разные красивые позиции
         layouts = [
-            {
-                "x": 70,
-                "y": 130,
-                "w": 680,
-                "h": 520
-            },
-            {
-                "x": 70,
-                "y": 500,
-                "w": 700,
-                "h": 500
-            },
-            {
-                "x": 310,
-                "y": 120,
-                "w": 700,
-                "h": 520
-            },
-            {
-                "x": 300,
-                "y": 500,
-                "w": 710,
-                "h": 500
-            }
+            (70, 585, 680, 400),
+            (70, 120, 670, 410),
+            (330, 585, 680, 400),
+            (330, 120, 680, 410)
         ]
 
-        layout = random.choice(layouts)
+        x, y, w, h = random.choice(layouts)
 
-        x = layout["x"]
-        y = layout["y"]
-        w = layout["w"]
-        h = layout["h"]
+        # blur card background
+        card = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        cd = ImageDraw.Draw(card)
 
-        # glass карточка
-        draw.rounded_rectangle(
+        cd.rounded_rectangle(
             [(x, y), (x + w, y + h)],
             radius=42,
-            fill=(5, 12, 24, 215),
-            outline=(255, 255, 255, 35),
+            fill=(3, 8, 18, 215),
+            outline=(255, 255, 255, 40),
             width=2
         )
 
-        # маленький premium бейдж
-        draw.rounded_rectangle(
-            [(x + 38, y + 35), (x + 220, y + 82)],
-            radius=22,
-            fill=(255, 255, 255, 28),
-            outline=(255, 255, 255, 55),
-            width=1
+        image = Image.alpha_composite(image, card)
+        draw = ImageDraw.Draw(image)
+
+        # текст сам подбирает размер
+        text_box_w = w - 90
+        text_box_h = h - 170
+
+        font_big, lines, line_height = fit_text(
+            draw,
+            title,
+            text_box_w,
+            text_box_h,
+            start_size=78,
+            min_size=38
         )
 
-        draw.text(
-            (x + 62, y + 43),
-            "AI CREATIVE",
-            fill=(210, 210, 210),
-            font=font_small
-        )
+        text_y = y + 65
 
-        # заголовок
-        text_y = y + 120
-
-        for index, line in enumerate(lines):
-            color = (255, 220, 35) if index == 1 else (255, 255, 255)
+        for i, line in enumerate(lines[:4]):
+            color = (255, 220, 40) if i == 1 else (255, 255, 255)
 
             draw.text(
                 (x + 45, text_y),
                 line,
                 fill=color,
-                font=font_huge
+                font=font_big
             )
 
-            text_y += 84
+            text_y += line_height
+
+        small_font = load_font(28)
+        micro_font = load_font(20)
 
         # декоративная линия
         draw.rectangle(
-            [(x + 45, y + h - 140), (x + 140, y + h - 132)],
+            [(x + 45, y + h - 120), (x + 135, y + h - 112)],
             fill=(255, 210, 40)
         )
 
-        # подзаголовок
         draw.text(
-            (x + 45, y + h - 105),
-            "СОЗДАНО ДЛЯ ВНИМАНИЯ",
-            fill=(230, 230, 230),
-            font=font_mid
+            (x + 45, y + h - 88),
+            "AI CONTENT",
+            fill=(245, 245, 245),
+            font=small_font
         )
 
-        # watermark только для FREE
+        # watermark для FREE — маленький и аккуратный
         if show_brand:
             brand_text = f"made with {BOT_USERNAME}"
 
-            badge_w = 280
-            badge_h = 38
+            badge_x1 = x + 45
+            badge_y1 = y + h - 45
+            badge_x2 = badge_x1 + 250
+            badge_y2 = badge_y1 + 30
 
             draw.rounded_rectangle(
-                [
-                    (x + 45, y + h - 58),
-                    (x + 45 + badge_w, y + h - 58 + badge_h)
-                ],
-                radius=19,
-                fill=(255, 255, 255, 24),
+                [(badge_x1, badge_y1), (badge_x2, badge_y2)],
+                radius=15,
+                fill=(255, 255, 255, 30),
                 outline=(255, 255, 255, 60),
                 width=1
             )
 
             draw.text(
-                (x + 65, y + h - 51),
+                (badge_x1 + 14, badge_y1 + 5),
                 brand_text,
-                fill=(230, 230, 230),
-                font=font_small
+                fill=(220, 220, 220),
+                font=micro_font
             )
 
-        image.convert("RGB").save(
-            final_file,
-            quality=96
-        )
+        image.convert("RGB").save(final_file, quality=96)
 
         try:
             os.remove(temp_file)
@@ -315,7 +277,7 @@ async def create_ai_image(image_url, title, show_brand=True):
 
 
 # ==================================================
-# ACCESS HELPERS
+# ACCESS
 # ==================================================
 async def user_has_access(user_id):
     if user_id == ADMIN_ID:
@@ -392,17 +354,10 @@ async def ai_post(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(
-                    photo=FSInputFile(final_image)
-                )
+                await m.answer_photo(photo=FSInputFile(final_image))
 
         await m.answer(text[:4000])
-
-        await add_generation(
-            m.from_user.id,
-            "post",
-            text
-        )
+        await add_generation(m.from_user.id, "post", text)
 
     except Exception as e:
         print("AI POST ERROR:", e)
@@ -446,16 +401,9 @@ async def carousel(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(
-                    photo=FSInputFile(final_image)
-                )
+                await m.answer_photo(photo=FSInputFile(final_image))
 
-        await add_generation(
-            m.from_user.id,
-            "carousel",
-            topic
-        )
-
+        await add_generation(m.from_user.id, "carousel", topic)
         await m.answer("🔥 AI карусель готова")
 
     except Exception as e:
@@ -480,15 +428,8 @@ async def reels(m: types.Message):
         text, topic = await generate_text()
         script = await generate_reels_text(topic)
 
-        await m.answer(
-            f"{script}\n\n{text[:2000]}"
-        )
-
-        await add_generation(
-            m.from_user.id,
-            "reels",
-            script
-        )
+        await m.answer(f"{script}\n\n{text[:2000]}")
+        await add_generation(m.from_user.id, "reels", script)
 
     except Exception as e:
         print("REELS ERROR:", e)
@@ -536,7 +477,7 @@ async def trends(m: types.Message):
 
 
 # ==================================================
-# TARIFFS
+# TARIFFS / PAYMENTS
 # ==================================================
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
@@ -546,7 +487,7 @@ async def tariffs(m: types.Message):
         "💎 ТАРИФЫ PRIMEONIX AI\n\n"
         "🆓 FREE\n"
         f"• {FREE_LIMIT} генераций\n"
-        f"• watermark с {BOT_USERNAME}\n\n"
+        f"• маленький watermark {BOT_USERNAME}\n\n"
         f"🚀 PRO — {PRO_PRICE_STARS} ⭐ / {PRO_DAYS} дней\n"
         "• Безлимит генераций\n"
         "• Без watermark\n"
@@ -558,9 +499,6 @@ async def tariffs(m: types.Message):
     )
 
 
-# ==================================================
-# PAYMENT
-# ==================================================
 @dp.message(lambda m: m.text == "/buypro")
 async def buy_pro(m: types.Message):
     prices = [
@@ -590,10 +528,7 @@ async def pre_checkout_query(query: PreCheckoutQuery):
 async def successful_payment(m: types.Message):
     payment = m.successful_payment
 
-    await set_pro(
-        m.from_user.id,
-        PRO_DAYS
-    )
+    await set_pro(m.from_user.id, PRO_DAYS)
 
     await add_payment(
         m.from_user.id,
@@ -628,14 +563,14 @@ async def admin(m: types.Message):
         "/autostatus — статус\n"
         "/autoon — включить\n"
         "/autooff — выключить\n"
-        "/auto1 — постинг каждый 1 час\n"
-        "/auto3 — постинг каждые 3 часа\n"
-        "/auto6 — постинг каждые 6 часов"
+        "/auto1 — каждый 1 час\n"
+        "/auto3 — каждые 3 часа\n"
+        "/auto6 — каждые 6 часов"
     )
 
 
 # ==================================================
-# AUTOPOST MENU
+# AUTOPOST
 # ==================================================
 @dp.message(lambda m: m.text == "🚀 Автопост")
 async def autopost_menu(m: types.Message):
@@ -658,9 +593,6 @@ async def autopost_menu(m: types.Message):
     )
 
 
-# ==================================================
-# AUTOPOST FUNCTION
-# ==================================================
 async def auto_post():
     if not await is_autopost_enabled():
         print("AUTOPOST OFF")
@@ -694,9 +626,6 @@ async def auto_post():
         print("AUTO POST ERROR:", e)
 
 
-# ==================================================
-# AUTOPOST COMMANDS
-# ==================================================
 @dp.message(lambda m: m.text == "/postnow")
 async def post_now(m: types.Message):
     if m.from_user.id != ADMIN_ID:
@@ -740,11 +669,7 @@ async def auto_on(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting(
-        "autopost_enabled",
-        "1"
-    )
-
+    await set_setting("autopost_enabled", "1")
     await m.answer("✅ Автопостинг включен")
 
 
@@ -753,11 +678,7 @@ async def auto_off(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting(
-        "autopost_enabled",
-        "0"
-    )
-
+    await set_setting("autopost_enabled", "0")
     await m.answer("❌ Автопостинг выключен")
 
 
@@ -766,15 +687,9 @@ async def set_auto_interval(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
-    hours = int(
-        m.text.replace("/auto", "")
-    )
+    hours = int(m.text.replace("/auto", ""))
 
-    await set_setting(
-        "autopost_hours",
-        str(hours)
-    )
-
+    await set_setting("autopost_hours", str(hours))
     await setup_autopost_job()
 
     await m.answer(
@@ -788,8 +703,15 @@ async def set_auto_interval(m: types.Message):
 async def on_startup():
     await init_db()
 
-    await bot.delete_webhook(
-        drop_pending_updates=True
+    await bot.delete_webhook(drop_pending_updates=True)
+
+    await bot.set_my_commands(
+        [
+            BotCommand(
+                command="start",
+                description="Запуск бота"
+            )
+        ]
     )
 
     await setup_autopost_job()
