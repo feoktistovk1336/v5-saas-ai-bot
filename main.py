@@ -241,16 +241,20 @@ async def carousel(m: types.Message):
         if not images:
 
             return await m.answer(
-                "❌ Картинки не сгенерированы"
+                "❌ Картинки не создались"
             )
 
+        # отправляем картинки
         for img in images:
 
             await m.answer_photo(
                 photo=img
             )
 
-        await m.answer(text)
+        # потом отдельно текст
+        await m.answer(
+            f"🖼 AI Карусель\n\n{text}"
+        )
 
     except Exception as e:
 
@@ -259,8 +263,6 @@ async def carousel(m: types.Message):
         await m.answer(
             "❌ Ошибка карусели"
         )
-
-
 # ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
