@@ -98,7 +98,7 @@ async def create_ai_image(image_url, title):
 
     try:
 
-        file_name = f"temp_{random.randint(1, 999999)}.jpg"
+        file_name = f"temp_{random.randint(1,999999)}.jpg"
 
         async with aiohttp.ClientSession() as session:
 
@@ -113,8 +113,11 @@ async def create_ai_image(image_url, title):
                     f.write(content)
 
         image = Image.open(file_name).convert("RGBA")
+
+        # resize
         image = image.resize((1080, 1080))
 
+        # overlay
         overlay = Image.new(
             "RGBA",
             image.size,
@@ -123,9 +126,10 @@ async def create_ai_image(image_url, title):
 
         overlay_draw = ImageDraw.Draw(overlay)
 
+        # красивый градиент снизу
         overlay_draw.rectangle(
-            [(0, 500), (1080, 1080)],
-            fill=(0, 0, 0, 180)
+            [(0, 600), (1080, 1080)],
+            fill=(0, 0, 0, 150)
         )
 
         image = Image.alpha_composite(
@@ -135,27 +139,38 @@ async def create_ai_image(image_url, title):
 
         draw = ImageDraw.Draw(image)
 
+        # шрифт
         font = ImageFont.load_default()
 
+        # TITLE
         draw.text(
-            (60, 760),
-            f"🔥 {title.upper()[:50]}",
-            fill="white",
+            (60, 700),
+            f"🔥 {title.upper()[:35]}",
+            fill=(255, 255, 255),
             font=font
         )
 
+        # SUBTITLE
         draw.text(
-            (60, 1000),
+            (60, 760),
+            "AI GENERATED CONTENT",
+            fill=(180, 255, 180),
+            font=font
+        )
+
+        # WATERMARK
+        draw.text(
+            (60, 980),
             "@v5_saas_ai_bot",
             fill=(220, 220, 220),
             font=font
         )
 
-        final_file = f"final_{random.randint(1, 999999)}.jpg"
+        final_file = f"final_{random.randint(1,999999)}.png"
 
         image.convert("RGB").save(
             final_file,
-            quality=95
+            quality=100
         )
 
         return final_file
