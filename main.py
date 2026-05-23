@@ -1,41 +1,22 @@
 import asyncio
-
 from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 
-from config import BOT_TOKEN
-from database.db import init_db
+from config import settings
+from services.memory import init_memory_db
+from services.queue import queue_worker
 
-from handlers.start import router as start_router
-from handlers.content import router as content_router
-from handlers.admin import router as admin_router
-from handlers.payments import router as payments_router
 from handlers.brand import router as brand_router
-from handlers.rewrite import router as rewrite_router
 
-
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-
+bot = Bot(token=settings.BOT_TOKEN)
 dp = Dispatcher()
+
+dp.include_router(brand_router)
 
 
 async def main():
-    await init_db()
+    await init_memory_db()
 
-    dp.include_router(start_router)
-    dp.include_router(content_router)
-    dp.include_router(admin_router)
-    dp.include_router(payments_router)
-    dp.include_router(brand_router)
-    dp.include_router(rewrite_router)
-
-    await bot.delete_webhook(drop_pending_updates=True)
-
-    print("🚀 PRIMEONIX AI STARTED")
+    asyncio.create_task(queue_worker())
 
     await dp.start_polling(bot)
 
