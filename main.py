@@ -110,54 +110,56 @@ async def create_ai_image(image_url, title):
         # resize
         image = image.resize((1080, 1080))
 
+        # ===== OVERLAY =====
+        image = image.convert("RGBA")
+
+        overlay = Image.new(
+            "RGBA",
+            image.size,
+            (0, 0, 0, 0)
+        )
+
+        overlay_draw = ImageDraw.Draw(overlay)
+
+        # красивое затемнение снизу
+        overlay_draw.rectangle(
+            [(0, 760), (1080, 1080)],
+            fill=(0, 0, 0, 120)
+        )
+
+        # объединяем
+        image = Image.alpha_composite(
+            image,
+            overlay
+        )
+
         draw = ImageDraw.Draw(image)
 
-        # overlay
-        # создаем overlay
-overlay = Image.new(
-    "RGBA",
-    image.size,
-    (0, 0, 0, 0)
-)
-
-overlay_draw = ImageDraw.Draw(overlay)
-
-# полупрозрачный градиент
-overlay_draw.rectangle(
-    [(0, 650), (1080, 1080)],
-    fill=(0, 0, 0, 140)
-)
-
-# объединяем
-image = image.convert("RGBA")
-image = Image.alpha_composite(
-    image,
-    overlay
-)
-
-draw = ImageDraw.Draw(image)
-
+        # ===== FONT =====
         font = ImageFont.load_default()
 
-        # title
+        # ===== TITLE =====
         draw.text(
-            (60, 760),
-            title[:80],
+            (60, 820),
+            title[:60],
             fill="white",
             font=font
         )
 
-        # watermark
+        # ===== WATERMARK =====
         draw.text(
-            (60, 980),
-            "V5 AI SaaS",
-            fill="white",
+            (60, 1000),
+            "@v5_saas_ai_bot",
+            fill=(220, 220, 220),
             font=font
         )
 
-        final_file = f"final_{random.randint(1,999999)}.jpg"
+        final_file = f"final_{random.randint(1,999999)}.png"
 
-        image.save(final_file)
+        image.convert("RGB").save(
+            final_file,
+            quality=95
+        )
 
         return final_file
 
@@ -166,8 +168,6 @@ draw = ImageDraw.Draw(image)
         print("CREATE IMAGE ERROR:", e)
 
         return None
-
-
 # ================= AI POST =================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
