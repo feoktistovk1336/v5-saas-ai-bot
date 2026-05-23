@@ -11,8 +11,6 @@ HOOKS = [
     "AI уже заменяет сотрудников",
     "Этот AI инструмент меняет всё",
     "Будущее уже наступило",
-    "Большинство не понимают силу AI",
-    "Через 1 год будет поздно",
     "Контент больше никогда не будет прежним"
 ]
 
@@ -22,8 +20,41 @@ CTAS = [
     "Сохрани пост и подпишись.",
     "Следи за AI трендами вместе с нами.",
     "Подписывайся на V5 AI SaaS.",
-    "Подпишись и начни использовать AI правильно."
+    "Начни использовать AI правильно уже сегодня."
 ]
+
+
+async def ask_groq(prompt, max_tokens=700):
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    json_data = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 1.1,
+        "max_tokens": max_tokens
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=json_data
+        ) as response:
+            data = await response.json()
+
+            if "choices" not in data:
+                print("GROQ ERROR:", data)
+                return None
+
+            return data["choices"][0]["message"]["content"]
 
 
 async def generate_text():
@@ -34,17 +65,18 @@ async def generate_text():
     cta = random.choice(CTAS)
 
     prompt = f"""
-Напиши мощный вирусный Telegram пост.
+Напиши вирусный Telegram пост на русском.
 
 Тема: {topic}
 Категория: {category}
 
 Стиль:
 — короткие абзацы
-— viral Instagram / TikTok style
 — без воды
 — современно
 — как AI creator
+— немного дерзко
+— легко читается
 
 Структура:
 1. Hook
@@ -56,44 +88,17 @@ async def generate_text():
 Начни с:
 {hook}
 
-В конце добавь CTA:
+В конце:
 {cta}
 """
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    json_data = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "temperature": 1.2,
-        "max_tokens": 700
-    }
-
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers,
-                json=json_data
-            ) as response:
+        text = await ask_groq(prompt, 700)
 
-                data = await response.json()
+        if not text:
+            return "🚀 AI меняет рынок прямо сейчас.", topic
 
-                if "choices" not in data:
-                    print("AI RESPONSE ERROR:", data)
-                    return "🚀 AI сейчас перегружен. Попробуй позже.", topic
-
-                text = data["choices"][0]["message"]["content"]
-
-                return text[:3500], topic
+        return text[:3500], topic
 
     except Exception as e:
         print("AI ERROR:", e)
@@ -102,69 +107,49 @@ async def generate_text():
 
 async def generate_carousel(topic):
     prompt = f"""
-Создай Instagram AI carousel на русском.
+Создай 5 коротких слайдов для Instagram AI carousel.
 
 Тема:
 {topic}
 
-Нужно 5 коротких слайдов.
-
 Формат:
 1. HOOK
 2. ПРОБЛЕМА
-3. ПОЧЕМУ ЭТО ВАЖНО
+3. ВАЖНОСТЬ
 4. AI РЕШЕНИЕ
 5. CTA
 
-Каждый слайд максимум 8 слов.
-Только текст слайдов.
+Правила:
+— каждый слайд максимум 6 слов
+— текст крупный
+— viral style
+— без пояснений
+— только строки с текстом
 """
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    json_data = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "temperature": 1,
-        "max_tokens": 300
-    }
-
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers,
-                json=json_data
-            ) as response:
+        text = await ask_groq(prompt, 300)
 
-                data = await response.json()
+        if not text:
+            raise Exception("No carousel text")
 
-                if "choices" not in data:
-                    print("CAROUSEL AI ERROR:", data)
-                    raise Exception("No choices")
+        slides = []
 
-                text = data["choices"][0]["message"]["content"]
+        for line in text.split("\n"):
+            line = line.strip()
 
-                slides = [
-                    line.replace("1.", "")
-                    .replace("2.", "")
-                    .replace("3.", "")
-                    .replace("4.", "")
-                    .replace("5.", "")
-                    .strip()
-                    for line in text.split("\n")
-                    if line.strip()
-                ]
+            if not line:
+                continue
 
-                return slides[:5]
+            for x in ["1.", "2.", "3.", "4.", "5.", "HOOK", "ПРОБЛЕМА", "ВАЖНОСТЬ", "AI РЕШЕНИЕ", "CTA", ":"]:
+                line = line.replace(x, "")
+
+            line = line.strip()
+
+            if line:
+                slides.append(line)
+
+        return slides[:5]
 
     except Exception as e:
         print("CAROUSEL AI ERROR:", e)
@@ -172,7 +157,7 @@ async def generate_carousel(topic):
         return [
             "AI меняет рынок",
             "Ты теряешь время",
-            "Конкуренты уже используют AI",
+            "Конкуренты уже впереди",
             "Автоматизируй контент",
-            "Подпишись сейчас"
+            "Начни прямо сейчас"
         ]
