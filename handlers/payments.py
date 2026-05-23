@@ -19,11 +19,11 @@ async def pro_menu(m: types.Message):
         f"🚀 PRO — {PRO_PRICE_STARS} ⭐ / {PRO_DAYS} дней\n"
         "• Безлимит генераций\n"
         "• Без watermark\n"
-        "• Premium AI visuals\n"
+        "• Premium AI картинки\n"
         "• Content Factory\n"
         "• Rewrite\n\n"
         f"Твой статус: {'🚀 PRO' if pro else '🆓 FREE'}\n\n"
-        "Для оплаты отправь /buypro"
+        "Для оплаты нажми /buypro"
     )
 
 
@@ -66,5 +66,6 @@ async def successful_payment(m: types.Message):
     )
 
     await m.answer(
-        f"✅ Оплата прошла успешно!\n\n🚀 PRO активирован на {PRO_DAYS} дней."
+        f"✅ Оплата прошла успешно!\n\n"
+        f"🚀 PRO активирован на {PRO_DAYS} дней."
     )
