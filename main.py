@@ -143,17 +143,16 @@ async def create_ai_image(image_url, title):
         draw = ImageDraw.Draw(image)
 
         # ===== FONT =====
-        try:
+       try:
 
     font = ImageFont.truetype(
         "arial.ttf",
-        60
+        70
     )
 
 except:
 
     font = ImageFont.load_default()
-
         # ===== TITLE =====
         draw.text(
             (60, 760),
