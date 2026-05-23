@@ -5,7 +5,7 @@ async def generate_images(topic, count=5):
     images = []
 
     for _ in range(count):
-        seed = random.randint(1, 99999999)
+        seed = random.randint(1, 999999999)
 
         url = f"https://picsum.photos/seed/{seed}/1080/1080"
 
@@ -26,7 +26,7 @@ async def generate_reels_text(topic):
     hook = random.choice(hooks)
 
     return f"""
-🎬 REELS
+🎬 REELS SCRIPT
 
 🔥 Хук:
 {hook}
@@ -38,7 +38,8 @@ async def generate_reels_text(topic):
 1. Зацепи внимание в первые 2 секунды.
 2. Покажи проблему.
 3. Дай AI-решение.
-4. Заверши сильным призывом.
+4. Покажи результат.
+5. Заверши сильным CTA.
 
 🚀 CTA:
 Подпишись для новых AI идей.
