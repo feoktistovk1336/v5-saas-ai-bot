@@ -5,22 +5,7 @@ from config import GROQ_API_KEY
 from topics import TOPICS
 
 
-TOPICS = [
-
-    "AI бизнес",
-    "нейросети",
-    "автоматизация",
-    "ChatGPT",
-    "заработок на AI",
-    "AI инструменты",
-    "будущее AI",
-    "AI маркетинг",
-    "AI стартапы",
-    "AI контент"
-
-]
-
-
+# ================= HOOKS =================
 HOOKS = [
 
     "95% людей используют AI неправильно",
@@ -28,7 +13,24 @@ HOOKS = [
     "AI уже заменяет сотрудников",
     "Этот AI инструмент меняет всё",
     "Будущее уже наступило",
-    "Большинство не понимают силу AI"
+    "Большинство не понимают силу AI",
+    "Через 1 год будет поздно",
+    "AI делает это вместо команды из 10 человек",
+    "Ты сильно недооцениваешь AI",
+    "Контент больше никогда не будет прежним"
+
+]
+
+
+# ================= CTA =================
+CTAS = [
+
+    "Подпишись, чтобы не отстать от будущего.",
+    "Сохрани пост и подпишись.",
+    "Следи за AI трендами вместе с нами.",
+    "Подписывайся на V5 AI SaaS.",
+    "Завтра этим будут пользоваться все.",
+    "Подпишись и начни использовать AI правильно."
 
 ]
 
@@ -36,32 +38,61 @@ HOOKS = [
 # ================= GENERATE TEXT =================
 async def generate_text():
 
-    topic = random.choice(TOPICS)
+    # категория
+    category = random.choice(
+        list(TOPICS.keys())
+    )
 
+    # тема
+    topic = random.choice(
+        TOPICS[category]
+    )
+
+    # hook
     hook = random.choice(HOOKS)
 
+    # cta
+    cta = random.choice(CTAS)
+
     prompt = f"""
-Напиши вирусный пост для Telegram.
+Напиши мощный вирусный Telegram пост.
 
 Тема:
 {topic}
 
-Структура:
-
-1. Hook
-2. Проблема
-3. Решение
-4. AI инструмент
-5. Призыв подписаться
+Категория:
+{category}
 
 Стиль:
-— современно
-— viral style
+— modern AI creator
+— viral Instagram style
+— TikTok style
 — короткие абзацы
-— как AI creator блог
+— сильные эмоции
+— ощущение будущего
+— без воды
+— легко читать
+
+Структура:
+
+1. Сильный HOOK
+2. Боль / проблема
+3. Почему это важно
+4. AI решение
+5. CTA
+
+Правила:
+— НЕ пиши длинные абзацы
+— НЕ используй сложные слова
+— Делай текст как viral creator
+— Добавляй энергию
+— Делай стиль как startup founder
 
 Начни с:
 {hook}
+
+В конце добавь CTA:
+{cta}
 """
 
     headers = {
@@ -70,14 +101,19 @@ async def generate_text():
     }
 
     json_data = {
+
         "model": "llama-3.3-70b-versatile",
+
         "messages": [
             {
                 "role": "user",
                 "content": prompt
             }
         ],
-        "temperature": 1
+
+        "temperature": 1.2,
+        "max_tokens": 700
+
     }
 
     try:
@@ -102,6 +138,9 @@ async def generate_text():
                     )
 
                 text = data["choices"][0]["message"]["content"]
+
+                # защита от слишком длинного текста
+                text = text[:3500]
 
                 return text, topic
 
