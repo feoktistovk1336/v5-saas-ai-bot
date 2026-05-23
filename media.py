@@ -4,14 +4,13 @@ import random
 # ================= AI IMAGES =================
 AI_IMAGES = [
 
-    "https://picsum.photos/900/900?1",
-    "https://picsum.photos/900/900?2",
-    "https://picsum.photos/900/900?3",
-    "https://picsum.photos/900/900?4",
-    "https://picsum.photos/900/900?5",
-    "https://picsum.photos/900/900?6",
-    "https://picsum.photos/900/900?7",
-    "https://picsum.photos/900/900?8"
+    "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1080",
+    "https://images.unsplash.com/photo-1674027392884-7515e76d7d24?w=1080",
+    "https://images.unsplash.com/photo-1676299081847-824916de030a?w=1080",
+    "https://images.unsplash.com/photo-1675557009875-436f2f7a3d18?w=1080",
+    "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=1080",
+    "https://images.unsplash.com/photo-1686191128892-3b8d6f840a52?w=1080",
+    "https://images.unsplash.com/photo-1677442135722-5f0c7a7d2d88?w=1080"
 
 ]
 
