@@ -33,13 +33,11 @@ async def generate_images(topic, count=5):
         )
 
         prompt = (
-            f"{topic}, "
-            f"{style}, "
-            f"high quality, "
-            f"modern AI artwork, "
-            f"instagram content, "
-            f"4k"
-        )
+    f"{topic}, "
+    f"{style}, "
+    f"instagram carousel, "
+    f"modern digital art"
+)
 
         url = (
             "https://image.pollinations.ai/prompt/"
