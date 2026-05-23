@@ -27,9 +27,9 @@ CTAS = [
 
 
 async def generate_text():
-
     category = random.choice(list(TOPICS.keys()))
     topic = random.choice(TOPICS[category])
+
     hook = random.choice(HOOKS)
     cta = random.choice(CTAS)
 
@@ -92,6 +92,7 @@ async def generate_text():
                     return "🚀 AI сейчас перегружен. Попробуй позже.", topic
 
                 text = data["choices"][0]["message"]["content"]
+
                 return text[:3500], topic
 
     except Exception as e:
@@ -100,7 +101,6 @@ async def generate_text():
 
 
 async def generate_carousel(topic):
-
     prompt = f"""
 Создай Instagram AI carousel на русском.
 
@@ -154,7 +154,12 @@ async def generate_carousel(topic):
                 text = data["choices"][0]["message"]["content"]
 
                 slides = [
-                    line.strip()
+                    line.replace("1.", "")
+                    .replace("2.", "")
+                    .replace("3.", "")
+                    .replace("4.", "")
+                    .replace("5.", "")
+                    .strip()
                     for line in text.split("\n")
                     if line.strip()
                 ]
