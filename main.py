@@ -37,15 +37,15 @@ from db import (
     can_generate,
     is_pro,
     set_pro,
-    add_payment
+    add_payment,
+    get_setting,
+    set_setting
 )
 
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
-
-AUTOPOST_ENABLED = True
 
 
 menu = ReplyKeyboardMarkup(
@@ -171,7 +171,7 @@ async def create_ai_image(image_url, title, show_brand=True):
 
         if show_brand:
             draw.rounded_rectangle(
-                [(card_x1 + 45, card_y2 - 55), (card_x1 + 360, card_y2 - 12)],
+                [(card_x1 + 45, card_y2 - 55), (card_x1 + 365, card_y2 - 12)],
                 radius=20,
                 outline=(180, 180, 180),
                 width=2
@@ -209,6 +209,28 @@ async def user_has_access(user_id):
         return True
 
     return await can_generate(user_id, FREE_LIMIT)
+
+
+async def is_autopost_enabled():
+    value = await get_setting("autopost_enabled", "1")
+    return value == "1"
+
+
+async def get_autopost_hours():
+    value = await get_setting("autopost_hours", "3")
+    return int(value)
+
+
+async def setup_autopost_job():
+    hours = await get_autopost_hours()
+
+    scheduler.add_job(
+        auto_post,
+        "interval",
+        hours=hours,
+        id="autopost",
+        replace_existing=True
+    )
 
 
 @dp.message(lambda m: m.text == "/start")
@@ -438,7 +460,10 @@ async def admin(m: types.Message):
         "/testpost — тест поста\n"
         "/autostatus — статус\n"
         "/autoon — включить\n"
-        "/autooff — выключить"
+        "/autooff — выключить\n"
+        "/auto1 — постинг каждый 1 час\n"
+        "/auto3 — постинг каждые 3 часа\n"
+        "/auto6 — постинг каждые 6 часов"
     )
 
 
@@ -447,22 +472,24 @@ async def autopost_menu(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return await m.answer("❌ Нет доступа")
 
+    enabled = await is_autopost_enabled()
+    hours = await get_autopost_hours()
+
     await m.answer(
         "🚀 АВТОПОСТИНГ\n\n"
-        f"Статус: {'✅ включен' if AUTOPOST_ENABLED else '❌ выключен'}\n"
-        "⏰ Интервал: каждые 3 часа\n\n"
+        f"Статус: {'✅ включен' if enabled else '❌ выключен'}\n"
+        f"⏰ Интервал: {hours} ч.\n\n"
         "/postnow — выложить сейчас\n"
         "/testpost — тест\n"
         "/autostatus — статус\n"
         "/autoon — включить\n"
-        "/autooff — выключить"
+        "/autooff — выключить\n"
+        "/auto1 /auto3 /auto6 — сменить интервал"
     )
 
 
 async def auto_post():
-    global AUTOPOST_ENABLED
-
-    if not AUTOPOST_ENABLED:
+    if not await is_autopost_enabled():
         print("AUTOPOST OFF")
         return
 
@@ -523,32 +550,46 @@ async def auto_status(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return
 
+    enabled = await is_autopost_enabled()
+    hours = await get_autopost_hours()
+
     await m.answer(
-        f"🚀 Автопостинг: {'✅ включен' if AUTOPOST_ENABLED else '❌ выключен'}\n"
-        "⏰ Интервал: 3 часа"
+        f"🚀 Автопостинг: {'✅ включен' if enabled else '❌ выключен'}\n"
+        f"⏰ Интервал: {hours} ч."
     )
 
 
 @dp.message(lambda m: m.text == "/autoon")
 async def auto_on(m: types.Message):
-    global AUTOPOST_ENABLED
-
     if m.from_user.id != ADMIN_ID:
         return
 
-    AUTOPOST_ENABLED = True
+    await set_setting("autopost_enabled", "1")
     await m.answer("✅ Автопостинг включен")
 
 
 @dp.message(lambda m: m.text == "/autooff")
 async def auto_off(m: types.Message):
-    global AUTOPOST_ENABLED
-
     if m.from_user.id != ADMIN_ID:
         return
 
-    AUTOPOST_ENABLED = False
+    await set_setting("autopost_enabled", "0")
     await m.answer("❌ Автопостинг выключен")
+
+
+@dp.message(lambda m: m.text in ["/auto1", "/auto3", "/auto6"])
+async def set_auto_interval(m: types.Message):
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    hours = int(m.text.replace("/auto", ""))
+
+    await set_setting("autopost_hours", str(hours))
+    await setup_autopost_job()
+
+    await m.answer(
+        f"✅ Интервал автопостинга изменен: {hours} ч."
+    )
 
 
 async def on_startup():
@@ -558,11 +599,7 @@ async def on_startup():
         drop_pending_updates=True
     )
 
-    scheduler.add_job(
-        auto_post,
-        "interval",
-        hours=3
-    )
+    await setup_autopost_job()
 
     scheduler.start()
 
