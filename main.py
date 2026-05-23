@@ -66,7 +66,8 @@ menu = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
-
+# ================= SCHEDULER =================
+scheduler = AsyncIOScheduler()
 
 # ================= IMAGE GENERATOR =================
 async def generate_images(prompt: str, count=5):
@@ -367,7 +368,70 @@ async def admin(m: types.Message):
         "/stats - статистика системы"
     )
 
+# ================= AUTO POST =================
+async def auto_post():
 
+    try:
+
+        text, topic = await generate_text()
+
+        images = await generate_images(
+            topic,
+            1
+        )
+
+        if images:
+
+            await bot.send_photo(
+                chat_id=CHANNEL_ID,
+                photo=images[0],
+                caption=text
+            )
+
+        else:
+
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=text
+            )
+
+        print("AUTO POST SENT")
+
+    except Exception as e:
+
+        print("AUTOPOST ERROR:", e)
+
+
+# ================= AUTO CAROUSEL =================
+async def auto_carousel():
+
+    try:
+
+        text, topic = await generate_text()
+
+        images = await generate_images(
+            topic,
+            5
+        )
+
+        for img in images:
+
+            await bot.send_photo(
+                chat_id=CHANNEL_ID,
+                photo=img
+            )
+
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=text
+        )
+
+        print("AUTO CAROUSEL SENT")
+
+    except Exception as e:
+
+        print("AUTO CAROUSEL ERROR:", e)
+        
 # ================= MAIN =================
 async def main():
 
@@ -378,6 +442,21 @@ async def main():
     )
 
     print("BOT STARTED")
+    # ================= SCHEDULE =================
+
+scheduler.add_job(
+    auto_post,
+    "interval",
+    hours=6
+)
+
+scheduler.add_job(
+    auto_carousel,
+    "interval",
+    hours=12
+)
+
+scheduler.start()
 
     await dp.start_polling(bot)
 
