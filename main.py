@@ -9,9 +9,9 @@ from database.db import init_db
 
 from handlers.start import router as start_router
 from handlers.content import router as content_router
-from handlers.rewrite import router as rewrite_router
 from handlers.admin import router as admin_router
 from handlers.payments import router as payments_router
+from handlers.rewrite import router as rewrite_router
 
 
 bot = Bot(
@@ -27,9 +27,9 @@ async def main():
 
     dp.include_router(start_router)
     dp.include_router(content_router)
-    dp.include_router(rewrite_router)
     dp.include_router(admin_router)
     dp.include_router(payments_router)
+    dp.include_router(rewrite_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
 
