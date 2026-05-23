@@ -196,6 +196,11 @@ async def ai_post(m: types.Message):
         )
 
         text, topic = await generate_text()
+        await add_generation(
+            m.from_user.id,
+            "post",
+            text
+        )
 
         images = await generate_images(
             topic,
@@ -244,6 +249,11 @@ async def carousel(m: types.Message):
         )
 
         text, topic = await generate_text()
+        await add_generation(
+            m.from_user.id,
+            "carousel",
+            text
+        )
 
         images = await generate_images(
             topic,
@@ -306,6 +316,11 @@ async def reels(m: types.Message):
         )
 
         text, topic = await generate_text()
+        await add_generation(
+            m.from_user.id,
+            "reels",
+            text
+        )
 
         script = await generate_reels_text(
             topic
@@ -542,6 +557,26 @@ async def on_startup():
     scheduler.start()
 
     print("БОТ ЗАПУЩЕН")
+
+
+# ================= STATS =================
+@dp.message(lambda m: m.text == "/stats")
+async def stats(m: types.Message):
+
+    if m.from_user.id != ADMIN_ID:
+
+        return
+
+    users, gens = await get_stats()
+
+    await m.answer(
+
+        f"📊 СТАТИСТИКА\n\n"
+
+        f"👥 Пользователей: {users}\n"
+        f"🧠 Генераций: {gens}"
+
+    )
 
 
 # ================= MAIN =================
