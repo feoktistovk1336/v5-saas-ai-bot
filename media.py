@@ -1,19 +1,15 @@
 import random
 
 
-# ================= STYLES =================
-STYLES = [
+AI_IMAGES = [
 
-    "cyberpunk",
-    "futuristic AI",
-    "dark neon",
-    "startup branding",
-    "viral instagram style",
-    "modern digital art",
-    "AI social media",
-    "minimal tech",
-    "luxury tech",
-    "futuristic business"
+    "https://images.unsplash.com/photo-1677442136019-21780ecad995",
+    "https://images.unsplash.com/photo-1674027392884-7515e76d7d24",
+    "https://images.unsplash.com/photo-1676299081847-824916de030a",
+    "https://images.unsplash.com/photo-1675557009875-436f2f7a3d18",
+    "https://images.unsplash.com/photo-1677442135703-1787eea5ce01",
+    "https://images.unsplash.com/photo-1686191128892-3b8d6f840a52",
+    "https://images.unsplash.com/photo-1677442135722-5f0c7a7d2d88"
 
 ]
 
@@ -25,35 +21,14 @@ async def generate_images(topic, count=5):
 
     for i in range(count):
 
-        style = random.choice(STYLES)
+        image = random.choice(AI_IMAGES)
 
-        seed = random.randint(
-            1,
-            9999999
-        )
-
-        # короткий prompt = стабильнее
-        prompt = (
-            f"{topic}, "
-            f"{style}, "
-            f"instagram carousel, "
-            f"digital art"
-        )
-
-        url = (
-            "https://image.pollinations.ai/prompt/"
-            f"{prompt}"
-            f"?seed={seed}"
-            f"&width=1024"
-            f"&height=1024"
-        )
-
-        images.append(url)
+        images.append(image)
 
     return images
 
 
-# ================= REELS TEXT =================
+# ================= REELS =================
 async def generate_reels_text(topic):
 
     hooks = [
@@ -68,7 +43,7 @@ async def generate_reels_text(topic):
 
     hook = random.choice(hooks)
 
-    text = f"""
+    return f"""
 🎬 REELS
 
 🔥 Хук:
@@ -77,14 +52,5 @@ async def generate_reels_text(topic):
 📌 Тема:
 {topic}
 
-🧠 Сценарий:
-Расскажи проблему.
-Покажи AI решение.
-Добавь вау-эффект.
-Сделай сильный CTA.
-
-🚀 CTA:
-Подпишись для новых AI идей.
+🚀 Подпишись для новых AI идей.
 """
-
-    return text
