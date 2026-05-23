@@ -21,36 +21,47 @@ COLORS = [
 ]
 
 
-# ================= IMAGE GENERATION =================
-async def generate_images(prompt: str, count=5):
+import random
+
+
+STYLES = [
+
+    "AI futuristic",
+    "cyberpunk",
+    "minimal tech",
+    "startup branding",
+    "dark neon"
+
+]
+
+
+# ================= GENERATE IMAGES =================
+async def generate_images(topic, count=5):
 
     images = []
 
-    os.makedirs("temp", exist_ok=True)
+    for i in range(count):
 
-    async with aiohttp.ClientSession() as session:
+        style = random.choice(STYLES)
 
-        for i in range(count):
+        seed = random.randint(1, 999999)
 
-            seed = random.randint(1, 999999)
+        prompt = f"""
+        {topic},
+        modern AI design,
+        social media style,
+        viral content,
+        {style}
+        """
 
-            url = (
-    f"https://image.pollinations.ai/prompt/"
-    f"beautiful%20{prompt}%20ai%20art"
-    f"?width=1024&height=1024&seed={seed}&model=flux"
-)
+        url = (
+            f"https://image.pollinations.ai/prompt/"
+            f"{prompt}?seed={seed}"
+        )
 
-            try:
+        images.append(url)
 
-                async with session.get(url) as r:
-
-                    filename = f"temp/{i}.jpg"
-
-                    if r.status == 200:
-
-                        with open(filename, "wb") as f:
-                            f.write(await r.read())
-
+    return images
                         # ================= OPEN IMAGE =================
                         img = Image.open(filename)
 
