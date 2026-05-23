@@ -4,14 +4,41 @@ import random
 import aiohttp
 
 from PIL import Image, ImageDraw, ImageFont
+
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile
+from aiogram.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    FSInputFile,
+    LabeledPrice,
+    PreCheckoutQuery
+)
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from config import BOT_TOKEN, ADMIN_ID, CHANNEL_ID
+from config import (
+    BOT_TOKEN,
+    ADMIN_ID,
+    CHANNEL_ID,
+    FREE_LIMIT,
+    PRO_PRICE_STARS,
+    PRO_DAYS,
+    BOT_USERNAME
+)
+
 from ai import generate_text, generate_carousel
 from media import generate_images, generate_reels_text
-from db import init_db, create_user, add_generation, get_stats
+
+from db import (
+    init_db,
+    create_user,
+    add_generation,
+    get_stats,
+    can_generate,
+    is_pro,
+    set_pro,
+    add_payment
+)
 
 
 bot = Bot(token=BOT_TOKEN)
@@ -32,7 +59,7 @@ menu = ReplyKeyboardMarkup(
 )
 
 
-def wrap_text(text, max_chars=16):
+def wrap_text(text, max_chars=14):
     words = text.split()
     lines = []
     line = ""
@@ -68,7 +95,7 @@ def load_font(size):
     return ImageFont.load_default()
 
 
-async def create_ai_image(image_url, title):
+async def create_ai_image(image_url, title, show_brand=True):
     try:
         temp_file = f"temp_{random.randint(1, 999999)}.jpg"
         final_file = f"final_{random.randint(1, 999999)}.jpg"
@@ -84,45 +111,56 @@ async def create_ai_image(image_url, title):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 80))
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 65))
         image = Image.alpha_composite(image, overlay)
 
         draw = ImageDraw.Draw(image)
 
         draw.rounded_rectangle(
-            [(50, 560), (1030, 1015)],
-            radius=45,
-            fill=(0, 0, 0, 210)
+            [(55, 545), (1025, 1015)],
+            radius=46,
+            fill=(0, 0, 0, 215)
         )
 
-        font = load_font(78)
-        small_font = load_font(34)
+        font_big = load_font(76)
+        font_small = load_font(34)
 
-        lines = wrap_text(f"🔥 {title.upper()}", 15)
+        lines = wrap_text(f"🔥 {title.upper()}", 14)
 
-        y = 630
-        for line in lines:
+        y = 610
+        for index, line in enumerate(lines):
+            color = (255, 220, 40) if index == 1 else (255, 255, 255)
+
             draw.text(
-                (85, y),
+                (90, y),
                 line,
-                fill=(255, 255, 255),
-                font=font
+                fill=color,
+                font=font_big
             )
-            y += 88
+
+            y += 86
 
         draw.text(
-            (85, 920),
+            (90, 895),
             "V5 AI SAAS",
             fill=(120, 255, 160),
-            font=small_font
+            font=font_small
         )
 
-        draw.text(
-            (650, 920),
-            "@v5_saas_ai_bot",
-            fill=(230, 230, 230),
-            font=small_font
-        )
+        if show_brand:
+            draw.rounded_rectangle(
+                [(90, 940), (420, 990)],
+                radius=25,
+                outline=(230, 230, 230),
+                width=2
+            )
+
+            draw.text(
+                (120, 950),
+                f"✈ {BOT_USERNAME}",
+                fill=(235, 235, 235),
+                font=font_small
+            )
 
         image.convert("RGB").save(
             final_file,
@@ -141,13 +179,23 @@ async def create_ai_image(image_url, title):
         return None
 
 
+async def user_has_access(user_id):
+    if user_id == ADMIN_ID:
+        return True
+
+    if await is_pro(user_id):
+        return True
+
+    return await can_generate(user_id, FREE_LIMIT)
+
+
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
     await create_user(m.from_user.id)
 
     await m.answer(
-        "🚀 Добро пожаловать в V5 AI SaaS\n\n"
-        "Создавай AI контент за секунды.",
+        "🚀 Добро пожаловать в PrimeOnix AI\n\n"
+        "Создавай AI посты, карусели и Reels за секунды.",
         reply_markup=menu
     )
 
@@ -155,20 +203,33 @@ async def start(m: types.Message):
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
     try:
+        if not await user_has_access(m.from_user.id):
+            return await m.answer(
+                "❌ Лимит FREE тарифа закончился.\n\n"
+                "Оформи PRO в разделе 💳 Тарифы."
+            )
+
         await m.answer("🔥 Создаю AI пост...")
 
         text, topic = await generate_text()
-        await add_generation(m.from_user.id, "post", text)
-
         images = await generate_images(topic, 1)
 
+        show_brand = not (
+            m.from_user.id == ADMIN_ID or await is_pro(m.from_user.id)
+        )
+
         if images:
-            final_image = await create_ai_image(images[0], topic)
+            final_image = await create_ai_image(
+                images[0],
+                topic,
+                show_brand=show_brand
+            )
 
             if final_image:
                 await m.answer_photo(photo=FSInputFile(final_image))
 
         await m.answer(text[:4000])
+        await add_generation(m.from_user.id, "post", text)
 
     except Exception as e:
         print("AI POST ERROR:", e)
@@ -178,6 +239,12 @@ async def ai_post(m: types.Message):
 @dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
     try:
+        if not await user_has_access(m.from_user.id):
+            return await m.answer(
+                "❌ Лимит FREE тарифа закончился.\n\n"
+                "Оформи PRO в разделе 💳 Тарифы."
+            )
+
         await m.answer("🖼 Создаю AI карусель...")
 
         topic = random.choice([
@@ -191,8 +258,16 @@ async def carousel(m: types.Message):
         slides = await generate_carousel(topic)
         images = await generate_images(topic, len(slides))
 
+        show_brand = not (
+            m.from_user.id == ADMIN_ID or await is_pro(m.from_user.id)
+        )
+
         for i, slide in enumerate(slides):
-            final_image = await create_ai_image(images[i], slide)
+            final_image = await create_ai_image(
+                images[i],
+                slide,
+                show_brand=show_brand
+            )
 
             if final_image:
                 await m.answer_photo(photo=FSInputFile(final_image))
@@ -208,14 +283,19 @@ async def carousel(m: types.Message):
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
     try:
+        if not await user_has_access(m.from_user.id):
+            return await m.answer(
+                "❌ Лимит FREE тарифа закончился.\n\n"
+                "Оформи PRO в разделе 💳 Тарифы."
+            )
+
         await m.answer("🎬 Создаю Reels...")
 
         text, topic = await generate_text()
         script = await generate_reels_text(topic)
 
-        await add_generation(m.from_user.id, "reels", script)
-
         await m.answer(f"{script}\n\n{text[:2000]}")
+        await add_generation(m.from_user.id, "reels", script)
 
     except Exception as e:
         print("REELS ERROR:", e)
@@ -258,17 +338,67 @@ async def trends(m: types.Message):
 
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
+    pro = await is_pro(m.from_user.id)
+
     await m.answer(
-        "💎 ТАРИФЫ V5 AI\n\n"
+        "💎 ТАРИФЫ PRIMEONIX AI\n\n"
         "🆓 FREE\n"
-        "• AI посты\n"
-        "• Карусели\n"
-        "• Reels scripts\n\n"
-        "🚀 PRO — 990₽/мес\n"
-        "• Безлимит\n"
+        f"• {FREE_LIMIT} генераций\n"
+        "• watermark с ботом\n\n"
+        f"🚀 PRO — {PRO_PRICE_STARS} ⭐ / {PRO_DAYS} дней\n"
+        "• Безлимит генераций\n"
+        "• Без watermark\n"
         "• Автопостинг\n"
         "• Premium AI\n\n"
-        "💳 Оплата скоро появится"
+        f"Твой статус: {'🚀 PRO' if pro else '🆓 FREE'}\n\n"
+        "Чтобы оплатить PRO, отправь команду:\n"
+        "/buypro"
+    )
+
+
+@dp.message(lambda m: m.text == "/buypro")
+async def buy_pro(m: types.Message):
+    prices = [
+        LabeledPrice(
+            label=f"PRO доступ на {PRO_DAYS} дней",
+            amount=PRO_PRICE_STARS
+        )
+    ]
+
+    await bot.send_invoice(
+        chat_id=m.chat.id,
+        title="PrimeOnix AI PRO",
+        description=(
+            "Безлимитные AI посты, карусели, Reels и картинки без watermark."
+        ),
+        payload=f"pro_{m.from_user.id}",
+        provider_token="",
+        currency="XTR",
+        prices=prices
+    )
+
+
+@dp.pre_checkout_query()
+async def pre_checkout_query(query: PreCheckoutQuery):
+    await query.answer(ok=True)
+
+
+@dp.message(lambda m: m.successful_payment is not None)
+async def successful_payment(m: types.Message):
+    payment = m.successful_payment
+
+    await set_pro(m.from_user.id, PRO_DAYS)
+
+    await add_payment(
+        m.from_user.id,
+        payment.total_amount,
+        payment.currency,
+        payment.telegram_payment_charge_id
+    )
+
+    await m.answer(
+        "✅ Оплата прошла успешно!\n\n"
+        f"🚀 PRO активирован на {PRO_DAYS} дней."
     )
 
 
@@ -277,12 +407,13 @@ async def admin(m: types.Message):
     if m.from_user.id != ADMIN_ID:
         return await m.answer("❌ Нет доступа")
 
-    users, gens = await get_stats()
+    users, gens, payments = await get_stats()
 
     await m.answer(
         "👑 ADMIN PANEL\n\n"
         f"👥 Пользователей: {users}\n"
-        f"🧠 Генераций: {gens}\n\n"
+        f"🧠 Генераций: {gens}\n"
+        f"💳 Оплат: {payments}\n\n"
         "/postnow — выложить сейчас\n"
         "/testpost — тест поста\n"
         "/autostatus — статус\n"
@@ -302,7 +433,9 @@ async def autopost_menu(m: types.Message):
         "⏰ Интервал: каждые 3 часа\n\n"
         "/postnow — выложить сейчас\n"
         "/testpost — тест\n"
-        "/autostatus — статус"
+        "/autostatus — статус\n"
+        "/autoon — включить\n"
+        "/autooff — выключить"
     )
 
 
@@ -318,7 +451,11 @@ async def auto_post():
         images = await generate_images(topic, 1)
 
         if images:
-            final_image = await create_ai_image(images[0], topic)
+            final_image = await create_ai_image(
+                images[0],
+                topic,
+                show_brand=False
+            )
 
             if final_image:
                 await bot.send_photo(
@@ -380,6 +517,7 @@ async def auto_on(m: types.Message):
         return
 
     AUTOPOST_ENABLED = True
+
     await m.answer("✅ Автопостинг включен")
 
 
@@ -391,6 +529,7 @@ async def auto_off(m: types.Message):
         return
 
     AUTOPOST_ENABLED = False
+
     await m.answer("❌ Автопостинг выключен")
 
 
