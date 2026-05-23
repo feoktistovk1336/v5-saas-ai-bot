@@ -211,9 +211,10 @@ async def ai_post(m: types.Message):
         if images:
 
             await m.answer_photo(
-                photo=images[0],
-                caption=text
-            )
+    photo=images[0]
+)
+
+await m.answer(text)
 
         else:
 
