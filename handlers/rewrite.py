@@ -15,21 +15,22 @@ async def rewrite_menu(m: types.Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="🔥 Viral", callback_data="rw_viral"),
-                InlineKeyboardButton(text="💎 Luxury", callback_data="rw_luxury")
+                InlineKeyboardButton(text="🔥 Вирусно", callback_data="rw_viral"),
+                InlineKeyboardButton(text="💎 Дорого", callback_data="rw_luxury")
             ],
             [
-                InlineKeyboardButton(text="⚡ Aggressive", callback_data="rw_aggressive"),
+                InlineKeyboardButton(text="⚡ Продающе", callback_data="rw_aggressive"),
                 InlineKeyboardButton(text="🎬 Reels", callback_data="rw_reels")
             ],
             [
-                InlineKeyboardButton(text="📱 Telegram", callback_data="rw_telegram")
+                InlineKeyboardButton(text="📱 Telegram-пост", callback_data="rw_telegram")
             ]
         ]
     )
 
     await m.answer(
-        "✍️ Выбери стиль rewrite:",
+        "✍️ <b>Rewrite</b>\n\n"
+        "Выбери стиль переписывания:",
         reply_markup=kb
     )
 
@@ -41,23 +42,27 @@ async def rewrite_style(c: CallbackQuery):
     rewrite_mode[c.from_user.id] = style
     rewrite_waiting[c.from_user.id] = True
 
-    await c.message.answer("📩 Отправь текст для переписывания.")
+    await c.message.answer(
+        "📩 Теперь отправь текст, который нужно переписать."
+    )
+
     await c.answer()
 
 
-@router.message()
+@router.message(lambda m: rewrite_waiting.get(m.from_user.id, False))
 async def rewrite_handler(m: types.Message):
-    if not rewrite_waiting.get(m.from_user.id):
-        return
-
     rewrite_waiting[m.from_user.id] = False
 
     style = rewrite_mode.get(m.from_user.id, "viral")
 
-    await m.answer("✍️ Переписываю...")
+    await m.answer("✍️ Переписываю текст...")
 
     result = await rewrite_text(m.text, style)
 
     await m.answer(result[:4000])
 
-    await add_generation(m.from_user.id, "rewrite", result[:1000])
+    await add_generation(
+        m.from_user.id,
+        "rewrite",
+        result[:1000]
+    )
