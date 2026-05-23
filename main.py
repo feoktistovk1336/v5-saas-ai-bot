@@ -245,44 +245,31 @@ async def carousel(m: types.Message):
             5
         )
 
+        print(images)
+
         if not images:
 
             return await m.answer(
                 "❌ Картинки не создались"
             )
 
-        for i, img_url in enumerate(images):
+        # отправляем URL напрямую
+        for img in images:
 
             try:
 
-                async with aiohttp.ClientSession() as session:
-
-                    async with session.get(img_url) as resp:
-
-                        if resp.status != 200:
-
-                            print("IMAGE STATUS:", resp.status)
-                            continue
-
-                        file_name = f"image_{i}.jpg"
-
-                        with open(file_name, "wb") as f:
-
-                            f.write(await resp.read())
-
-                photo = FSInputFile(file_name)
-
-                await bot.send_photo(
-                    chat_id=m.chat.id,
-                    photo=photo
+                await m.answer_photo(
+                    photo=img
                 )
-
-                os.remove(file_name)
 
             except Exception as img_error:
 
-                print("IMAGE ERROR:", img_error)
+                print(
+                    "IMAGE ERROR:",
+                    img_error
+                )
 
+        # отправляем текст
         await m.answer(
             f"🖼 AI Карусель\n\n{text}"
         )
