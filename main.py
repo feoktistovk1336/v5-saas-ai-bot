@@ -1,10 +1,18 @@
 import asyncio
 import random
+import aiohttp
+
+from PIL import (
+    Image,
+    ImageDraw,
+    ImageFont
+)
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import (
     ReplyKeyboardMarkup,
-    KeyboardButton
+    KeyboardButton,
+    FSInputFile
 )
 
 from config import (
@@ -14,6 +22,7 @@ from config import (
 )
 
 from ai import generate_text
+
 from media import (
     generate_images,
     generate_reels_text
@@ -77,6 +86,69 @@ async def start(m: types.Message):
     )
 
 
+# ================= CREATE AI IMAGE =================
+async def create_ai_image(image_url, title):
+
+    try:
+
+        file_name = f"temp_{random.randint(1,999999)}.jpg"
+
+        async with aiohttp.ClientSession() as session:
+
+            async with session.get(image_url) as response:
+
+                if response.status != 200:
+                    return None
+
+                content = await response.read()
+
+                with open(file_name, "wb") as f:
+                    f.write(content)
+
+        image = Image.open(file_name).convert("RGB")
+
+        # resize
+        image = image.resize((1080, 1080))
+
+        draw = ImageDraw.Draw(image)
+
+        # overlay
+        draw.rectangle(
+            [(0, 700), (1080, 1080)],
+            fill=(0, 0, 0)
+        )
+
+        font = ImageFont.load_default()
+
+        # title
+        draw.text(
+            (60, 760),
+            title[:80],
+            fill="white",
+            font=font
+        )
+
+        # watermark
+        draw.text(
+            (60, 980),
+            "V5 AI SaaS",
+            fill="white",
+            font=font
+        )
+
+        final_file = f"final_{random.randint(1,999999)}.jpg"
+
+        image.save(final_file)
+
+        return final_file
+
+    except Exception as e:
+
+        print("CREATE IMAGE ERROR:", e)
+
+        return None
+
+
 # ================= AI POST =================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
@@ -96,10 +168,21 @@ async def ai_post(m: types.Message):
 
         if images:
 
-            await m.answer_photo(
-                photo=images[0],
-                caption=text[:1000]
+            final_image = await create_ai_image(
+                images[0],
+                topic
             )
+
+            if final_image:
+
+                await m.answer_photo(
+                    photo=FSInputFile(final_image),
+                    caption=text[:900]
+                )
+
+            else:
+
+                await m.answer(text[:4000])
 
         else:
 
@@ -144,9 +227,16 @@ async def carousel(m: types.Message):
 
             try:
 
-                await m.answer_photo(
-                    photo=img
+                final_image = await create_ai_image(
+                    img,
+                    topic
                 )
+
+                if final_image:
+
+                    await m.answer_photo(
+                        photo=FSInputFile(final_image)
+                    )
 
             except Exception as img_error:
 
@@ -299,11 +389,25 @@ async def auto_post():
 
         if images:
 
-            await bot.send_photo(
-                chat_id=CHANNEL_ID,
-                photo=images[0],
-                caption=text[:1000]
+            final_image = await create_ai_image(
+                images[0],
+                topic
             )
+
+            if final_image:
+
+                await bot.send_photo(
+                    chat_id=CHANNEL_ID,
+                    photo=FSInputFile(final_image),
+                    caption=text[:900]
+                )
+
+            else:
+
+                await bot.send_message(
+                    chat_id=CHANNEL_ID,
+                    text=text[:4000]
+                )
 
         else:
 
