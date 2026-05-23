@@ -391,9 +391,25 @@ async def start(m: types.Message):
     await m.answer(
         "🚀 Добро пожаловать в PrimeOnix AI\n\n"
         "Создавай AI посты, карусели и Reels за секунды.",
-        reply_markup=menu
+        reply_markup=main_menu
     )
 
+@dp.message(lambda m: m.text == "📦 Контент")
+async def open_content(m: types.Message):
+
+    await m.answer(
+        "📦 Раздел контента",
+        reply_markup=content_menu
+    )
+
+
+@dp.message(lambda m: m.text == "⬅️ Назад")
+async def back_menu(m: types.Message):
+
+    await m.answer(
+        "🏠 Главное меню",
+        reply_markup=main_menu
+    )
 
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
@@ -522,7 +538,7 @@ async def trends(m: types.Message):
     )
 
 
-@dp.message(lambda m: m.text == "💳 Тарифы")
+@dp.message(lambda m: m.text == "💎 PRO")
 async def tariffs(m: types.Message):
     pro = await is_pro(m.from_user.id)
 
