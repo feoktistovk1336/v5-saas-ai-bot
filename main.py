@@ -127,8 +127,8 @@ async def create_ai_image(image_url, title):
 
         # красивое затемнение снизу
         overlay_draw.rectangle(
-            [(0, 760), (1080, 1080)],
-            fill=(0, 0, 0, 120)
+            [(0, 500), (1080, 1080)],
+            fill=(0, 0, 0, 180)
         )
 
         # объединяем
@@ -140,7 +140,16 @@ async def create_ai_image(image_url, title):
         draw = ImageDraw.Draw(image)
 
         # ===== FONT =====
-        font = ImageFont.load_default()
+        try:
+
+    font = ImageFont.truetype(
+        "arial.ttf",
+        60
+    )
+
+except:
+
+    font = ImageFont.load_default()
 
         # ===== TITLE =====
         draw.text(
