@@ -2,7 +2,6 @@ import asyncio
 import os
 import random
 import aiohttp
-import requests
 
 from PIL import (
     Image,
@@ -235,9 +234,6 @@ async def carousel(m: types.Message):
 
     try:
 
-        import os
-        import requests
-
         await m.answer(
             "🖼 Создаю AI карусель..."
         )
@@ -249,8 +245,6 @@ async def carousel(m: types.Message):
             5
         )
 
-        print(images)
-
         if not images:
 
             return await m.answer(
@@ -261,12 +255,20 @@ async def carousel(m: types.Message):
 
             try:
 
-                response = requests.get(img_url)
+                async with aiohttp.ClientSession() as session:
 
-                file_name = f"image_{i}.jpg"
+                    async with session.get(img_url) as resp:
 
-                with open(file_name, "wb") as f:
-                    f.write(response.content)
+                        if resp.status != 200:
+
+                            print("IMAGE STATUS:", resp.status)
+                            continue
+
+                        file_name = f"image_{i}.jpg"
+
+                        with open(file_name, "wb") as f:
+
+                            f.write(await resp.read())
 
                 photo = FSInputFile(file_name)
 
@@ -281,7 +283,6 @@ async def carousel(m: types.Message):
 
                 print("IMAGE ERROR:", img_error)
 
-        # отправляем текст
         await m.answer(
             f"🖼 AI Карусель\n\n{text}"
         )
