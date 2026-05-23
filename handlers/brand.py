@@ -103,7 +103,7 @@ async def brand_rewrite(message: Message):
         # сюда подключается твоя текущая AI-функция
         # result = await ask_ai(prompt)
 
-        result = prompt  # временно, чтобы не сломать проект
+        result = await ask_ai(prompt)  # временно, чтобы не сломать проект
 
         await message.answer(result)
         await track_usage(message.from_user.id, "brand_rewrite")
