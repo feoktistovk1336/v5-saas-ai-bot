@@ -1,18 +1,10 @@
 import asyncio
-import os
 import random
 
-from PIL import (
-    Image,
-    ImageDraw,
-    ImageFont
-)
-
 from aiogram import Bot, Dispatcher, types
-
 from aiogram.types import (
     ReplyKeyboardMarkup,
-    KeyboardButton,  
+    KeyboardButton
 )
 
 from config import (
@@ -22,7 +14,6 @@ from config import (
 )
 
 from ai import generate_text
-
 from media import (
     generate_images,
     generate_reels_text
@@ -36,9 +27,13 @@ from db import (
 from apscheduler.schedulers.asyncio import (
     AsyncIOScheduler
 )
+
+
 # ================= BOT =================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+scheduler = AsyncIOScheduler()
 
 
 # ================= MENU =================
@@ -67,120 +62,6 @@ menu = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
-# ================= SCHEDULER =================
-scheduler = AsyncIOScheduler()
-
-# ================= IMAGE GENERATOR =================
-async def generate_images(prompt: str, count=5):
-
-    images = []
-
-    os.makedirs("temp", exist_ok=True)
-
-    async with aiohttp.ClientSession() as session:
-
-        for i in range(count):
-
-            seed = random.randint(1, 999999)
-
-            filename = f"temp/{seed}.jpg"
-
-            # ================= AI IMAGE =================
-            url = (
-                f"https://image.pollinations.ai/prompt/"
-                f"beautiful%20{prompt}%20ai%20art"
-                f"?width=1024&height=1024"
-                f"&seed={seed}"
-                f"&model=flux"
-            )
-
-            try:
-
-                async with session.get(url) as r:
-
-                    # ================= FALLBACK =================
-                    if r.status != 200:
-
-                        print("POLLINATIONS FAILED:", r.status)
-
-                        fallback = (
-                            f"https://picsum.photos/seed/"
-                            f"{seed}/1024/1024"
-                        )
-
-                        async with session.get(fallback) as f:
-
-                            if f.status == 200:
-
-                                with open(filename, "wb") as img_file:
-                                    img_file.write(await f.read())
-
-                    else:
-
-                        with open(filename, "wb") as img_file:
-                            img_file.write(await r.read())
-
-                # ================= DESIGN =================
-                img = Image.open(filename)
-
-                img = img.resize((1080, 1080))
-
-                overlay = Image.new(
-                    "RGBA",
-                    img.size,
-                    (0, 0, 0, 120)
-                )
-
-                img = Image.alpha_composite(
-                    img.convert("RGBA"),
-                    overlay
-                )
-
-                draw = ImageDraw.Draw(img)
-
-                # ================= FONT =================
-                try:
-
-                    font = ImageFont.truetype(
-                        "arial.ttf",
-                        60
-                    )
-
-                except:
-
-                    font = ImageFont.load_default()
-
-                # ================= TITLE =================
-                title = prompt.upper()[:35]
-
-                draw.text(
-                    (60, 120),
-                    title,
-                    fill="white",
-                    font=font
-                )
-
-                # ================= BRAND =================
-                draw.text(
-                    (60, 950),
-                    "V5 AI SAAS",
-                    fill="white",
-                    font=font
-                )
-
-                img = img.convert("RGB")
-
-                img.save(filename)
-
-                images.append(
-                    FSInputFile(filename)
-                )
-
-            except Exception as e:
-
-                print("IMAGE ERROR:", e)
-
-    return images
 
 
 # ================= START =================
@@ -191,7 +72,7 @@ async def start(m: types.Message):
 
     await m.answer(
         "🚀 Добро пожаловать в V5 AI SaaS\n\n"
-        "Создавай AI-контент за секунды.",
+        "Создавай AI контент за секунды.",
         reply_markup=menu
     )
 
@@ -202,6 +83,10 @@ async def ai_post(m: types.Message):
 
     try:
 
+        await m.answer(
+            "🔥 Создаю AI пост..."
+        )
+
         text, topic = await generate_text()
 
         images = await generate_images(
@@ -209,23 +94,26 @@ async def ai_post(m: types.Message):
             1
         )
 
-        # отправляем картинку
         if images:
 
             await m.answer_photo(
-                photo=images[0]
+                photo=images[0],
+                caption=text[:1000]
             )
 
-        # отправляем текст отдельно
-        await m.answer(text)
+        else:
+
+            await m.answer(text[:4000])
 
     except Exception as e:
 
-        print("AI POST ERROR:", e)
+        print("AI ERROR:", e)
 
         await m.answer(
             "❌ Ошибка генерации поста"
         )
+
+
 # ================= CAROUSEL =================
 @dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
@@ -251,7 +139,7 @@ async def carousel(m: types.Message):
                 "❌ Картинки не создались"
             )
 
-        # отправляем URL напрямую
+        # отправляем картинки
         for img in images:
 
             try:
@@ -269,7 +157,7 @@ async def carousel(m: types.Message):
 
         # отправляем текст
         await m.answer(
-            f"🖼 AI Карусель\n\n{text}"
+            f"🖼 AI Карусель\n\n{text[:4000]}"
         )
 
     except Exception as e:
@@ -279,31 +167,27 @@ async def carousel(m: types.Message):
         await m.answer(
             "❌ Ошибка карусели"
         )
+
+
 # ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
 
     try:
 
+        await m.answer(
+            "🎬 Создаю Reels..."
+        )
+
         text, topic = await generate_text()
 
-        script = f"""
-🎬 AI REELS
+        script = await generate_reels_text(
+            topic
+        )
 
-🔥 Хук:
-Ты не готов к тому, как AI меняет рынок прямо сейчас...
-
-📌 Тема:
-{topic}
-
-🧠 Сценарий:
-{text}
-
-🚀 Призыв:
-Подпишись на V5 AI SaaS
-"""
-
-        await m.answer(script)
+        await m.answer(
+            f"{script}\n\n{text[:2000]}"
+        )
 
     except Exception as e:
 
@@ -318,14 +202,29 @@ async def reels(m: types.Message):
 @dp.message(lambda m: m.text == "🧠 Идеи")
 async def ideas(m: types.Message):
 
-    await m.answer(
-        "💡 ИДЕИ ДЛЯ КОНТЕНТА\n\n"
+    ideas_list = [
 
-        "1. 5 AI-инструментов для бизнеса\n"
-        "2. Как заработать на нейросетях\n"
-        "3. AI vs дизайнеры\n"
-        "4. Лучшие GPT для работы\n"
-        "5. Как автоматизировать контент"
+        "5 AI-инструментов для бизнеса",
+        "Как заработать на нейросетях",
+        "AI vs дизайнеры",
+        "Лучшие GPT для работы",
+        "Как автоматизировать контент",
+        "Как AI меняет маркетинг",
+        "Нейросети для TikTok",
+        "AI для Instagram",
+        "Будущее AI бизнеса",
+        "Как создать AI SaaS"
+
+    ]
+
+    random.shuffle(ideas_list)
+
+    text = "\n".join(
+        ideas_list[:5]
+    )
+
+    await m.answer(
+        f"🧠 AI ИДЕИ\n\n{text}"
     )
 
 
@@ -340,7 +239,10 @@ async def trends(m: types.Message):
         "🔥 TikTok automation\n"
         "🔥 Faceless YouTube\n"
         "🔥 AI инфобизнес\n"
-        "🔥 AI видео"
+        "🔥 AI видео\n"
+        "🔥 AI SaaS\n"
+        "🔥 AI маркетинг\n"
+        "🔥 AI контент"
     )
 
 
@@ -360,10 +262,9 @@ async def tariffs(m: types.Message):
         "• Безлимит AI постов\n"
         "• Безлимит каруселей\n"
         "• AI Reels\n"
-        "• Приоритет генерации\n"
         "• Premium AI\n\n"
 
-        "💳 Оплата появится скоро"
+        "💳 Оплата скоро появится"
     )
 
 
@@ -379,9 +280,10 @@ async def admin(m: types.Message):
 
     await m.answer(
         "👑 ADMIN PANEL\n\n"
-        "/users - список пользователей\n"
-        "/stats - статистика системы"
+        "/users\n"
+        "/stats"
     )
+
 
 # ================= AUTO POST =================
 async def auto_post():
@@ -395,83 +297,53 @@ async def auto_post():
             1
         )
 
-        # картинка отдельно
         if images:
 
             await bot.send_photo(
                 chat_id=CHANNEL_ID,
-                photo=images[0]
+                photo=images[0],
+                caption=text[:1000]
             )
 
-        # текст отдельно
-        await bot.send_message(
-            chat_id=CHANNEL_ID,
-            text=text
-        )
+        else:
+
+            await bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=text[:4000]
+            )
 
         print("AUTO POST SUCCESS")
 
     except Exception as e:
 
         print("AUTO POST ERROR:", e)
-# ================= AUTO CAROUSEL =================
-async def auto_carousel():
 
-    try:
 
-        text, topic = await generate_text()
-
-        images = await generate_images(
-            topic,
-            5
-        )
-
-        for img in images:
-
-            await bot.send_photo(
-                chat_id=CHANNEL_ID,
-                photo=img
-            )
-
-        await bot.send_message(
-            chat_id=CHANNEL_ID,
-            text=text
-        )
-
-        print("AUTO CAROUSEL SENT")
-
-    except Exception as e:
-
-        print("AUTO CAROUSEL ERROR:", e)
-        
-# ================= MAIN =================
-async def main():
+# ================= STARTUP =================
+async def on_startup():
 
     await init_db()
 
-    # удаляем старый webhook
     await bot.delete_webhook(
         drop_pending_updates=True
     )
 
-    print("BOT STARTED")
-
-    # ================= SCHEDULE =================
     scheduler.add_job(
         auto_post,
         "interval",
-        hours=6
-    )
-
-    scheduler.add_job(
-        auto_carousel,
-        "interval",
-        hours=12
+        hours=3
     )
 
     scheduler.start()
 
-    # запускаем polling
+    print("БОТ ЗАПУЩЕН")
+
+
+# ================= MAIN =================
+async def main():
+
+    await on_startup()
+
     await dp.start_polling(bot)
 
 
