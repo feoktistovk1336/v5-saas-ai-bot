@@ -11,6 +11,7 @@ from handlers.start import router as start_router
 from handlers.content import router as content_router
 from handlers.admin import router as admin_router
 from handlers.payments import router as payments_router
+from handlers.brand import router as brand_router
 from handlers.rewrite import router as rewrite_router
 
 
@@ -29,6 +30,7 @@ async def main():
     dp.include_router(content_router)
     dp.include_router(admin_router)
     dp.include_router(payments_router)
+    dp.include_router(brand_router)
     dp.include_router(rewrite_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
