@@ -1,38 +1,105 @@
 import aiohttp
-from config import GROQ_API_KEY
 import random
 
+from config import GROQ_API_KEY
+
+
 TOPICS = [
-    "AI trends 2026",
-    "Future of content creation",
-    "AI tools that change everything",
-    "Viral marketing secrets",
+
+    "AI бизнес",
+    "нейросети",
+    "автоматизация",
+    "ChatGPT",
+    "заработок на AI",
+    "AI инструменты",
+    "будущее AI",
+    "AI маркетинг",
+    "AI стартапы",
+    "AI контент"
+
 ]
 
+
+HOOKS = [
+
+    "95% людей используют AI неправильно",
+    "Ты теряешь деньги без AI",
+    "AI уже заменяет сотрудников",
+    "Этот AI инструмент меняет всё",
+    "Будущее уже наступило",
+    "Большинство не понимают силу AI"
+
+]
+
+
+# ================= GENERATE TEXT =================
 async def generate_text():
+
     topic = random.choice(TOPICS)
 
+    hook = random.choice(HOOKS)
+
     prompt = f"""
-    Ты viral AI creator.
+Напиши короткий вирусный пост для Telegram.
 
-    Тема: {topic}
+Тема:
+{topic}
 
-    Дай:
-    - сильный hook
-    - короткие абзацы
-    - emoji
-    - CTA
-    """
+Структура:
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-            json={
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.9
+1. Мощный hook
+2. Проблема
+3. Решение
+4. AI инструмент
+5. Призыв подписаться
+
+Стиль:
+— современно
+— viral style
+— короткие абзацы
+— как AI creator блог
+
+Начни с:
+{hook}
+"""
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    json_data = {
+        "model": "llama3-70b-8192",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
             }
-        ) as r:
-            data = await r.json()
-            return data["choices"][0]["message"]["content"], topic
+        ],
+        "temperature": 1
+    }
+
+    try:
+
+        async with aiohttp.ClientSession() as session:
+
+            async with session.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=json_data
+            ) as response:
+
+                data = await response.json()
+
+                text = data["choices"][0]["message"]["content"]
+
+                return text, topic
+
+    except Exception as e:
+
+        print("AI ERROR:", e)
+
+        return (
+            "🚀 AI меняет рынок прямо сейчас.",
+            topic
+        )
