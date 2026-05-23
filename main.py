@@ -242,32 +242,16 @@ async def carousel(m: types.Message):
             5
         )
 
-        print("IMAGES:", images)
+        print(images)
 
-        if not images:
-
-            return await m.answer(
-                "❌ Картинки не создались"
-            )
-
-        # отправляем по 1 картинке
         for img in images:
 
-            try:
+            await bot.send_photo(
+                chat_id=m.chat.id,
+                photo=img
+            )
 
-                await bot.send_photo(
-                    chat_id=m.chat.id,
-                    photo=img
-                )
-
-            except Exception as img_error:
-
-                print("IMAGE ERROR:", img_error)
-
-        # текст отдельно
-        await m.answer(
-            f"🖼 AI Карусель\n\n{text}"
-        )
+        await m.answer(text)
 
     except Exception as e:
 
