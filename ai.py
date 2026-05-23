@@ -40,14 +40,14 @@ async def generate_text():
     hook = random.choice(HOOKS)
 
     prompt = f"""
-Напиши короткий вирусный пост для Telegram.
+Напиши вирусный пост для Telegram.
 
 Тема:
 {topic}
 
 Структура:
 
-1. Мощный hook
+1. Hook
 2. Проблема
 3. Решение
 4. AI инструмент
@@ -69,7 +69,7 @@ async def generate_text():
     }
 
     json_data = {
-        "model": "llama3-70b-8192",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {
                 "role": "user",
@@ -91,16 +91,16 @@ async def generate_text():
 
                 data = await response.json()
 
-print(data)
+                print(data)
 
-if "choices" not in data:
+                if "choices" not in data:
 
-    return (
-        "🚀 AI сейчас перегружен. Попробуй позже.",
-        topic
-    )
+                    return (
+                        "🚀 AI сейчас перегружен. Попробуй позже.",
+                        topic
+                    )
 
-text = data["choices"][0]["message"]["content"]
+                text = data["choices"][0]["message"]["content"]
 
                 return text, topic
 
