@@ -1,37 +1,27 @@
 TOPICS = {
-
     "business": [
-
         "AI для бизнеса",
         "AI автоматизация",
-        "AI продажи",
-        "AI SaaS"
-
+        "AI SaaS",
+        "AI продажи"
     ],
 
     "content": [
-
         "AI контент",
-        "AI Reels",
         "AI Instagram",
-        "AI TikTok"
-
+        "AI TikTok",
+        "AI Reels"
     ],
 
     "money": [
-
-        "Как заработать на AI",
-        "AI фриланс",
-        "AI стартапы"
-
+        "Заработок на AI",
+        "AI стартапы",
+        "AI фриланс"
     ],
 
     "future": [
-
         "Будущее AI",
         "AI агенты",
         "Нейросети 2026"
-
     ]
-
 }
