@@ -162,29 +162,29 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        # затемнение фона
-        dark = Image.new("RGBA", image.size, (0, 0, 0, 85))
+        # cinema dark overlay
+        dark = Image.new("RGBA", image.size, (0, 0, 0, 95))
         image = Image.alpha_composite(image, dark)
 
-        # теплое свечение
+        # warm glow
         glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow)
 
         for r in range(520, 0, -10):
-            alpha = int(95 * (r / 520))
+            alpha = int(90 * (r / 520))
             glow_draw.ellipse(
-                [(780 - r, 650 - r), (780 + r, 650 + r)],
-                fill=(255, 170, 35, alpha)
+                [(760 - r, 680 - r), (760 + r, 680 + r)],
+                fill=(255, 170, 30, alpha)
             )
 
         image = Image.alpha_composite(image, glow)
 
-        # темный градиент снизу
+        # bottom depth gradient
         gradient = Image.new("RGBA", image.size, (0, 0, 0, 0))
         gd = ImageDraw.Draw(gradient)
 
         for yy in range(1080):
-            alpha = int(185 * (yy / 1080))
+            alpha = int(190 * (yy / 1080))
             gd.line(
                 [(0, yy), (1080, yy)],
                 fill=(0, 0, 0, alpha)
@@ -192,71 +192,71 @@ async def create_ai_image(image_url, title, show_brand=True):
 
         image = Image.alpha_composite(image, gradient)
 
-        # карточка
+        # card position
         card_x = 70
-        card_y = 150
+        card_y = 145
         card_w = 780
-        card_h = 805
+        card_h = 810
 
-        # тень
+        # shadow
         shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
         sd = ImageDraw.Draw(shadow)
 
         sd.rounded_rectangle(
             [
-                (card_x + 18, card_y + 20),
-                (card_x + card_w + 18, card_y + card_h + 20)
+                (card_x + 20, card_y + 22),
+                (card_x + card_w + 20, card_y + card_h + 22)
             ],
-            radius=58,
-            fill=(0, 0, 0, 125)
+            radius=60,
+            fill=(0, 0, 0, 140)
         )
 
-        shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(20))
         image = Image.alpha_composite(image, shadow)
 
         draw = ImageDraw.Draw(image)
 
-        # glass card
+        # premium glass card
         draw.rounded_rectangle(
             [(card_x, card_y), (card_x + card_w, card_y + card_h)],
-            radius=58,
-            fill=(3, 8, 18, 225),
-            outline=(255, 255, 255, 75),
+            radius=60,
+            fill=(3, 8, 18, 226),
+            outline=(255, 255, 255, 80),
             width=2
         )
 
         font_badge = load_font(24)
-        font_small = load_font(34)
-        font_micro = load_font(23)
+        font_sub = load_font(34)
+        font_brand = load_font(25)
 
-        # бейдж
+        # badge
         draw.rounded_rectangle(
-            [(card_x + 55, card_y + 55), (card_x + 265, card_y + 105)],
-            radius=25,
+            [(card_x + 55, card_y + 55), (card_x + 275, card_y + 108)],
+            radius=26,
             fill=(255, 255, 255, 22),
-            outline=(255, 255, 255, 75),
+            outline=(255, 255, 255, 80),
             width=1
         )
 
         draw.text(
-            (card_x + 82, card_y + 67),
-            "AI CREATIVE",
-            fill=(230, 230, 230),
+            (card_x + 83, card_y + 69),
+            "AI CREATIVE +",
+            fill=(235, 235, 235),
             font=font_badge
         )
 
-        # заголовок
+        # title
         title_font, lines, line_height = fit_title(
             draw,
             title,
             card_w - 120,
-            390
+            410
         )
 
-        text_y = card_y + 165
+        text_y = card_y + 170
 
         for i, line in enumerate(lines):
-            color = (255, 220, 35) if i in [1, 2] else (255, 255, 255)
+            color = (255, 218, 35) if i in [1, 2] else (255, 255, 255)
 
             draw.text(
                 (card_x + 55, text_y),
@@ -267,66 +267,66 @@ async def create_ai_image(image_url, title, show_brand=True):
 
             text_y += line_height
 
-        # подзаголовок
-        subtitle_y = card_y + 535
+        # selling subtitle
+        subtitle_y = card_y + 545
 
         draw.text(
             (card_x + 55, subtitle_y),
             "ТЕХНОЛОГИИ МЕНЯЮТ МИР.",
             fill=(235, 235, 235),
-            font=font_small
+            font=font_sub
         )
 
         draw.text(
             (card_x + 55, subtitle_y + 48),
             "ВОПРОС ТОЛЬКО В ТОМ,",
             fill=(235, 235, 235),
-            font=font_small
+            font=font_sub
         )
 
         draw.text(
             (card_x + 55, subtitle_y + 96),
             "ИСПОЛЬЗУЕШЬ ЛИ ТЫ ИХ.",
-            fill=(255, 220, 35),
-            font=font_small
+            fill=(255, 218, 35),
+            font=font_sub
         )
 
-        # линия
+        # accent line
         draw.rectangle(
             [
-                (card_x + 55, card_y + card_h - 155),
-                (card_x + 165, card_y + card_h - 147)
+                (card_x + 55, card_y + card_h - 158),
+                (card_x + 175, card_y + card_h - 149)
             ],
             fill=(255, 210, 35)
         )
 
         draw.text(
-            (card_x + 55, card_y + card_h - 105),
+            (card_x + 55, card_y + card_h - 110),
             "AI CONTENT",
             fill=(255, 255, 255),
-            font=font_small
+            font=font_sub
         )
 
-        # watermark только для FREE
+        # free watermark
         if show_brand:
             badge_x = card_x + 55
-            badge_y = card_y + card_h - 58
-            badge_w = 315
-            badge_h = 42
+            badge_y = card_y + card_h - 62
+            badge_w = 330
+            badge_h = 46
 
             draw.rounded_rectangle(
                 [(badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h)],
-                radius=21,
-                fill=(0, 0, 0, 40),
-                outline=(255, 220, 35, 180),
+                radius=23,
+                fill=(0, 0, 0, 65),
+                outline=(255, 218, 35, 180),
                 width=2
             )
 
             draw.text(
-                (badge_x + 24, badge_y + 8),
+                (badge_x + 28, badge_y + 9),
                 BRAND_USERNAME,
                 fill=(255, 255, 255),
-                font=font_micro
+                font=font_brand
             )
 
         image.convert("RGB").save(
@@ -344,7 +344,6 @@ async def create_ai_image(image_url, title, show_brand=True):
     except Exception as e:
         print("CREATE IMAGE ERROR:", e)
         return None
-
 
 # ==================================================
 # ACCESS
