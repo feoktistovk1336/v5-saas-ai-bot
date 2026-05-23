@@ -65,7 +65,8 @@ menu = ReplyKeyboardMarkup(
         ],
 
         [
-            KeyboardButton(text="👑 Админ")
+            KeyboardButton(text="👑 Админ"),
+            KeyboardButton(text="🚀 Автопост")
         ]
 
     ],
@@ -394,6 +395,71 @@ async def admin(m: types.Message):
     )
 
 
+# ================= AUTOPOST MENU =================
+@dp.message(lambda m: m.text == "🚀 Автопост")
+async def autopost_menu(m: types.Message):
+
+    if m.from_user.id != ADMIN_ID:
+
+        return await m.answer(
+            "❌ Нет доступа"
+        )
+
+    await m.answer(
+        "🚀 АВТОПОСТИНГ\n\n"
+
+        "⏰ Сейчас: каждые 2 часа\n\n"
+
+        "Команды:\n"
+        "/postnow — выложить сейчас\n"
+        "/autostatus — статус\n"
+        "/autotest — тест"
+    )
+
+
+    # ================= POST NOW =================
+@dp.message(lambda m: m.text == "/postnow")
+async def post_now(m: types.Message):
+
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    await m.answer(
+        "🚀 Публикую пост..."
+    )
+
+    await auto_post()
+
+    await m.answer(
+        "✅ Пост опубликован"
+    )
+
+
+# ================= AUTO STATUS =================
+@dp.message(lambda m: m.text == "/autostatus")
+async def auto_status(m: types.Message):
+
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    await m.answer(
+        "✅ Автопостинг активен\n"
+        "⏰ Интервал: 2 часа"
+    )
+
+
+# ================= AUTO TEST =================
+@dp.message(lambda m: m.text == "/autotest")
+async def auto_test(m: types.Message):
+
+    if m.from_user.id != ADMIN_ID:
+        return
+
+    text, topic = await generate_text()
+
+    await m.answer(
+        f"🧪 ТЕСТ АВТОПОСТА\n\n{text[:1000]}"
+    )
 # ================= AUTO POST =================
 async def auto_post():
 
