@@ -2,88 +2,128 @@ import asyncio
 import random
 import aiohttp
 
-from PIL import (
-    Image,
-    ImageDraw,
-    ImageFont
-)
+from PIL import Image, ImageDraw, ImageFont
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import (
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    FSInputFile
-)
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 
-from config import (
-    BOT_TOKEN,
-    ADMIN_ID,
-    CHANNEL_ID
-)
+from config import BOT_TOKEN, ADMIN_ID, CHANNEL_ID
+from ai import generate_text, generate_carousel
+from media import generate_images, generate_reels_text
+from db import init_db, create_user
 
-from ai import (
-    generate_text,
-    generate_carousel
-)
-
-from media import (
-    generate_images,
-    generate_reels_text
-)
-
-from db import (
-    init_db,
-    create_user,
-    get_user,
-    add_generation,
-    get_stats
-)
-
-from apscheduler.schedulers.asyncio import (
-    AsyncIOScheduler
-)
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
-# ================= BOT =================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-
 scheduler = AsyncIOScheduler()
 
 
-# ================= MENU =================
 menu = ReplyKeyboardMarkup(
     keyboard=[
-
-        [
-            KeyboardButton(text="🔥 AI Пост"),
-            KeyboardButton(text="🖼 Карусель")
-        ],
-
-        [
-            KeyboardButton(text="🎬 Reels"),
-            KeyboardButton(text="🧠 Идеи")
-        ],
-
-        [
-            KeyboardButton(text="📈 Тренды"),
-            KeyboardButton(text="💳 Тарифы")
-        ],
-
-        [
-            KeyboardButton(text="👑 Админ"),
-            KeyboardButton(text="🚀 Автопост")
-        ]
-
+        [KeyboardButton(text="🔥 AI Пост"), KeyboardButton(text="🖼 Карусель")],
+        [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="🧠 Идеи")],
+        [KeyboardButton(text="📈 Тренды"), KeyboardButton(text="💳 Тарифы")],
+        [KeyboardButton(text="👑 Админ"), KeyboardButton(text="🚀 Автопост")]
     ],
     resize_keyboard=True
 )
 
 
-# ================= START =================
+def wrap_text(text, max_chars=16):
+    words = text.split()
+    lines = []
+    line = ""
+
+    for word in words:
+        if len(line + " " + word) <= max_chars:
+            line += " " + word
+        else:
+            lines.append(line.strip())
+            line = word
+
+    if line:
+        lines.append(line.strip())
+
+    return lines[:3]
+
+
+async def create_ai_image(image_url, title):
+    try:
+        temp_file = f"temp_{random.randint(1, 999999)}.jpg"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as response:
+                if response.status != 200:
+                    return None
+
+                content = await response.read()
+
+                with open(temp_file, "wb") as f:
+                    f.write(content)
+
+        image = Image.open(temp_file).convert("RGBA")
+        image = image.resize((1080, 1080))
+
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 70))
+        image = Image.alpha_composite(image, overlay)
+
+        draw = ImageDraw.Draw(image)
+
+        try:
+            font = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                72
+            )
+            small_font = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                34
+            )
+        except:
+            font = ImageFont.load_default()
+            small_font = ImageFont.load_default()
+
+        draw.rounded_rectangle(
+            [(45, 600), (1035, 1015)],
+            radius=42,
+            fill=(0, 0, 0, 190)
+        )
+
+        lines = wrap_text(f"🔥 {title.upper()}", 16)
+
+        y = 660
+        for line in lines:
+            draw.text((80, y), line, fill=(255, 255, 255), font=font)
+            y += 90
+
+        draw.text(
+            (80, 925),
+            "V5 AI SAAS",
+            fill=(120, 255, 160),
+            font=small_font
+        )
+
+        draw.text(
+            (680, 925),
+            "@v5_saas_ai_bot",
+            fill=(220, 220, 220),
+            font=small_font
+        )
+
+        final_file = f"final_{random.randint(1, 999999)}.jpg"
+
+        image.convert("RGB").save(final_file, quality=95)
+
+        return final_file
+
+    except Exception as e:
+        print("CREATE IMAGE ERROR:", e)
+        return None
+
+
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
-
     await create_user(m.from_user.id)
 
     await m.answer(
@@ -93,289 +133,74 @@ async def start(m: types.Message):
     )
 
 
-# ================= CREATE AI IMAGE =================
-async def create_ai_image(image_url, title):
-
-    try:
-
-        file_name = f"temp_{random.randint(1,999999)}.jpg"
-
-        async with aiohttp.ClientSession() as session:
-
-            async with session.get(image_url) as response:
-
-                if response.status != 200:
-                    return None
-
-                content = await response.read()
-
-                with open(file_name, "wb") as f:
-                    f.write(content)
-
-        image = Image.open(file_name).convert("RGBA")
-
-        # resize
-        image = image.resize((1080, 1080))
-
-        # overlay
-        overlay = Image.new(
-            "RGBA",
-            image.size,
-            (0, 0, 0, 0)
-        )
-
-        overlay_draw = ImageDraw.Draw(overlay)
-
-        # мощное затемнение
-        overlay_draw.rectangle(
-            [(0, 550), (1080, 1080)],
-            fill=(0, 0, 0, 210)
-        )
-
-        image = Image.alpha_composite(
-            image,
-            overlay
-        )
-
-        draw = ImageDraw.Draw(image)
-
-        # FONT
-        try:
-
-            font = ImageFont.truetype(
-                "arial.ttf",
-                75
-            )
-
-            small_font = ImageFont.truetype(
-                "arial.ttf",
-                35
-            )
-
-        except:
-
-            font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
-
-        # TITLE
-        text = f"🔥 {title.upper()[:28]}"
-
-        draw.text(
-            (60, 680),
-            text,
-            fill=(255, 255, 255),
-            font=font
-        )
-
-        # SUBTITLE
-        draw.text(
-            (60, 820),
-            "AI GENERATED CONTENT",
-            fill=(120, 255, 120),
-            font=small_font
-        )
-
-        # WATERMARK
-        draw.text(
-            (60, 980),
-            "@v5_saas_ai_bot",
-            fill=(220, 220, 220),
-            font=small_font
-        )
-
-        final_file = f"final_{random.randint(1,999999)}.png"
-
-        image.convert("RGB").save(
-            final_file,
-            quality=100
-        )
-
-        return final_file
-
-    except Exception as e:
-
-        print("CREATE IMAGE ERROR:", e)
-
-        return None
-               
-# ================= AI POST =================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
-    user = await get_user(
-        m.from_user.id
-    )
-
-    if (
-        user[2] == "FREE"
-        and user[3] >= 5
-    ):
-
-        return await m.answer(
-            "❌ Лимит FREE тарифа.\n\n"
-            "Купи PRO для безлимита."
-        )
-
     try:
-
-        await m.answer(
-            "🔥 Создаю AI пост..."
-        )
+        await m.answer("🔥 Создаю AI пост...")
 
         text, topic = await generate_text()
-        await add_generation(
-            m.from_user.id,
-            "post",
-            text
-        )
-
-        images = await generate_images(
-            topic,
-            1
-        )
+        images = await generate_images(topic, 1)
 
         if images:
-
-            final_image = await create_ai_image(
-                images[0],
-                topic
-            )
+            final_image = await create_ai_image(images[0], topic)
 
             if final_image:
+                await m.answer_photo(photo=FSInputFile(final_image))
 
-                await m.answer_photo(
-                    photo=FSInputFile(final_image),
-                    caption=text[:900]
-                )
-
-            else:
-
-                await m.answer(text[:4000])
-
-        else:
-
-            await m.answer(text[:4000])
+        await m.answer(text[:4000])
 
     except Exception as e:
-
-        print("AI ERROR:", e)
-
-        await m.answer(
-            "❌ Ошибка генерации поста"
-        )
+        print("AI POST ERROR:", e)
+        await m.answer("❌ Ошибка генерации поста")
 
 
-# ================= CAROUSEL =================
 @dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
-
     try:
-
-        await m.answer(
-            "🖼 Создаю AI карусель..."
-        )
+        await m.answer("🖼 Создаю AI карусель...")
 
         topic = random.choice([
-
             "AI бизнес",
             "нейросети",
-            "автоматизация",
             "AI маркетинг",
-            "AI стартапы"
-
+            "AI стартапы",
+            "AI контент"
         ])
 
-        slides = await generate_carousel(
-            topic
-        )
+        slides = await generate_carousel(topic)
+        images = await generate_images(topic, len(slides))
 
-        images = await generate_images(
-            topic,
-            len(slides)
-        )
+        for i, slide in enumerate(slides):
+            final_image = await create_ai_image(images[i], slide)
 
-        if not images:
+            if final_image:
+                await m.answer_photo(photo=FSInputFile(final_image))
 
-            return await m.answer(
-                "❌ Ошибка генерации"
-            )
-
-        for i in range(len(slides)):
-
-            try:
-
-                final_image = await create_ai_image(
-                    images[i],
-                    slides[i]
-                )
-
-                if final_image:
-
-                    await m.answer_document(
-                        photo=FSInputFile(
-                            final_image
-                        )
-                    )
-
-            except Exception as img_error:
-
-                print(
-                    "SLIDE ERROR:",
-                    img_error
-                )
-
-        await m.answer(
-            "🔥 AI карусель готова"
-        )
+        await m.answer("🔥 AI карусель готова")
 
     except Exception as e:
-
         print("CAROUSEL ERROR:", e)
-
-        await m.answer(
-            "❌ Ошибка карусели"
-        )
+        await m.answer("❌ Ошибка карусели")
 
 
-# ================= REELS =================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
-
     try:
-
-        await m.answer(
-            "🎬 Создаю Reels..."
-        )
+        await m.answer("🎬 Создаю Reels...")
 
         text, topic = await generate_text()
-        await add_generation(
-            m.from_user.id,
-            "reels",
-            text
-        )
+        script = await generate_reels_text(topic)
 
-        script = await generate_reels_text(
-            topic
-        )
-
-        await m.answer(
-            f"{script}\n\n{text[:2000]}"
-        )
+        await m.answer(f"{script}\n\n{text[:2000]}")
 
     except Exception as e:
-
         print("REELS ERROR:", e)
-
-        await m.answer(
-            "❌ Ошибка генерации Reels"
-        )
+        await m.answer("❌ Ошибка генерации Reels")
 
 
-# ================= IDEAS =================
 @dp.message(lambda m: m.text == "🧠 Идеи")
 async def ideas(m: types.Message):
-
     ideas_list = [
-
         "5 AI-инструментов для бизнеса",
         "Как заработать на нейросетях",
         "AI vs дизайнеры",
@@ -386,27 +211,20 @@ async def ideas(m: types.Message):
         "AI для Instagram",
         "Будущее AI бизнеса",
         "Как создать AI SaaS"
-
     ]
 
     random.shuffle(ideas_list)
 
-    text = "\n".join(
-        ideas_list[:5]
-    )
-
     await m.answer(
-        f"🧠 AI ИДЕИ\n\n{text}"
+        "🧠 AI ИДЕИ\n\n" +
+        "\n".join(ideas_list[:5])
     )
 
 
-# ================= TRENDS =================
 @dp.message(lambda m: m.text == "📈 Тренды")
 async def trends(m: types.Message):
-
     await m.answer(
-        "📈 AI ТРЕНДЫ 2026\n\n"
-
+        "📈 AI ТРЕНДЫ\n\n"
         "🔥 AI агенты\n"
         "🔥 TikTok automation\n"
         "🔥 Faceless YouTube\n"
@@ -418,161 +236,95 @@ async def trends(m: types.Message):
     )
 
 
-# ================= TARIFFS =================
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
-
     await m.answer(
         "💎 ТАРИФЫ V5 AI\n\n"
-
         "🆓 FREE\n"
         "• 5 AI постов\n"
         "• 1 карусель\n"
         "• 1 reels\n\n"
-
         "🚀 PRO — 990₽/мес\n"
         "• Безлимит AI постов\n"
         "• Безлимит каруселей\n"
         "• AI Reels\n"
         "• Premium AI\n\n"
-
         "💳 Оплата скоро появится"
     )
 
 
-# ================= ADMIN =================
 @dp.message(lambda m: m.text == "👑 Админ")
 async def admin(m: types.Message):
-
     if m.from_user.id != ADMIN_ID:
-
-        return await m.answer(
-            "❌ Нет доступа"
-        )
+        return await m.answer("❌ Нет доступа")
 
     await m.answer(
         "👑 ADMIN PANEL\n\n"
-        "/users\n"
-        "/stats"
+        "/postnow — пост сейчас\n"
+        "/autostatus — статус автопоста"
     )
 
 
-# ================= AUTOPOST MENU =================
 @dp.message(lambda m: m.text == "🚀 Автопост")
 async def autopost_menu(m: types.Message):
-
     if m.from_user.id != ADMIN_ID:
-
-        return await m.answer(
-            "❌ Нет доступа"
-        )
+        return await m.answer("❌ Нет доступа")
 
     await m.answer(
         "🚀 АВТОПОСТИНГ\n\n"
-
-        "⏰ Сейчас: каждые 2 часа\n\n"
-
-        "Команды:\n"
+        "⏰ Сейчас: каждые 3 часа\n\n"
         "/postnow — выложить сейчас\n"
-        "/autostatus — статус\n"
-        "/autotest — тест"
+        "/autostatus — статус"
     )
 
 
-    # ================= POST NOW =================
+async def auto_post():
+    try:
+        text, topic = await generate_text()
+        images = await generate_images(topic, 1)
+
+        if images:
+            final_image = await create_ai_image(images[0], topic)
+
+            if final_image:
+                await bot.send_photo(
+                    chat_id=CHANNEL_ID,
+                    photo=FSInputFile(final_image)
+                )
+
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=text[:4000]
+        )
+
+        print("AUTO POST SUCCESS")
+
+    except Exception as e:
+        print("AUTO POST ERROR:", e)
+
+
 @dp.message(lambda m: m.text == "/postnow")
 async def post_now(m: types.Message):
-
     if m.from_user.id != ADMIN_ID:
         return
 
-    await m.answer(
-        "🚀 Публикую пост..."
-    )
-
+    await m.answer("🚀 Публикую пост...")
     await auto_post()
-
-    await m.answer(
-        "✅ Пост опубликован"
-    )
+    await m.answer("✅ Пост опубликован")
 
 
-# ================= AUTO STATUS =================
 @dp.message(lambda m: m.text == "/autostatus")
 async def auto_status(m: types.Message):
-
     if m.from_user.id != ADMIN_ID:
         return
 
     await m.answer(
         "✅ Автопостинг активен\n"
-        "⏰ Интервал: 2 часа"
+        "⏰ Интервал: 3 часа"
     )
 
 
-# ================= AUTO TEST =================
-@dp.message(lambda m: m.text == "/autotest")
-async def auto_test(m: types.Message):
-
-    if m.from_user.id != ADMIN_ID:
-        return
-
-    text, topic = await generate_text()
-
-    await m.answer(
-        f"🧪 ТЕСТ АВТОПОСТА\n\n{text[:1000]}"
-    )
-# ================= AUTO POST =================
-async def auto_post():
-
-    try:
-
-        text, topic = await generate_text()
-
-        images = await generate_images(
-            topic,
-            1
-        )
-
-        if images:
-
-            final_image = await create_ai_image(
-                images[0],
-                topic
-            )
-
-            if final_image:
-
-                await bot.send_photo(
-                    chat_id=CHANNEL_ID,
-                    photo=FSInputFile(final_image),
-                    caption=text[:900]
-                )
-
-            else:
-
-                await bot.send_message(
-                    chat_id=CHANNEL_ID,
-                    text=text[:4000]
-                )
-
-        else:
-
-            await bot.send_message(
-                chat_id=CHANNEL_ID,
-                text=text[:4000]
-            )
-
-        print("AUTO POST SUCCESS")
-
-    except Exception as e:
-
-        print("AUTO POST ERROR:", e)
-
-
-# ================= STARTUP =================
 async def on_startup():
-
     await init_db()
 
     await bot.delete_webhook(
@@ -590,40 +342,10 @@ async def on_startup():
     print("БОТ ЗАПУЩЕН")
 
 
-# ================= STATS =================
-@dp.message(lambda m: m.text == "/stats")
-async def stats(m: types.Message):
-
-    if m.from_user.id != ADMIN_ID:
-
-        return
-
-    users, gens = await get_stats()
-
-    await m.answer(
-
-        f"📊 СТАТИСТИКА\n\n"
-
-        f"👥 Пользователей: {users}\n"
-        f"🧠 Генераций: {gens}"
-
-    )
-
-
-# ================= MAIN =================
 async def main():
-
     await on_startup()
-
-    try:
-
-        await dp.start_polling(bot)
-
-    except Exception as e:
-
-        print("POLLING ERROR:", e)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-
     asyncio.run(main())
