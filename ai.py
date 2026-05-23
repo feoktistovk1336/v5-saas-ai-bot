@@ -17,7 +17,17 @@ VISUAL_HOOKS = [
 ]
 
 
+REWRITE_STYLES = {
+    "viral": "сделай максимально вирусно, дерзко, эмоционально",
+    "luxury": "сделай дорого, premium style, luxury marketing",
+    "aggressive": "сделай агрессивно и продающе",
+    "reels": "сделай как сценарий reels",
+    "telegram": "сделай как viral telegram post"
+}
+
+
 async def ask_groq(prompt, max_tokens=700):
+
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
@@ -36,11 +46,13 @@ async def ask_groq(prompt, max_tokens=700):
     }
 
     async with aiohttp.ClientSession() as session:
+
         async with session.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
             json=payload
         ) as response:
+
             data = await response.json()
 
             if "choices" not in data:
@@ -51,103 +63,103 @@ async def ask_groq(prompt, max_tokens=700):
 
 
 async def generate_text():
+
     category = random.choice(list(TOPICS.keys()))
     topic = random.choice(TOPICS[category])
     visual_title = random.choice(VISUAL_HOOKS)
 
     prompt = f"""
-Напиши мощный Telegram-пост на русском.
+Напиши мощный Telegram-пост.
 
 Тема:
 {topic}
 
-Главная идея для картинки:
+Главная идея:
 {visual_title}
 
 Стиль:
-— дерзко
+— современно
+— viral
+— дорого
+— AI creator style
 — короткие абзацы
-— без воды
-— как AI creator / SaaS founder
+— удержание внимания
+— эмоционально
 — продающе
-— удерживает внимание
-— современный Telegram стиль
 
 Структура:
-1. Сильный хук
-2. Боль аудитории
-3. Почему старый подход больше не работает
+1. Hook
+2. Боль
+3. Почему старые методы умирают
 4. Как AI решает проблему
-5. Мотивационный CTA подписаться
+5. CTA
 
-Не используй длинные абзацы.
 Не пиши скучно.
-Не используй фразу "в современном мире".
 """
 
     try:
+
         text = await ask_groq(prompt, 800)
 
         if not text:
-            return "AI меняет рынок. Кто действует сейчас — получает преимущество.", visual_title
+            return (
+                "AI меняет рынок прямо сейчас.",
+                visual_title
+            )
 
         return text[:3500], visual_title
 
     except Exception as e:
+
         print("AI ERROR:", e)
-        return "AI меняет рынок. Кто действует сейчас — получает преимущество.", visual_title
+
+        return (
+            "AI меняет рынок прямо сейчас.",
+            visual_title
+        )
 
 
 async def generate_carousel(topic):
+
     prompt = f"""
-Создай 5 слайдов для дорогой AI/SaaS Instagram-карусели.
+Создай 5 ultra viral слайдов.
 
 Тема:
 {topic}
 
 Формат:
-Только 5 строк.
-Каждая строка — отдельный слайд.
+5 коротких строк.
 
-Стиль текста:
-— коротко
+Стиль:
+— дорого
 — мощно
-— продающе
+— luxury
+— как AI SaaS
 — максимум 5 слов
-— как заголовок на рекламном креативе
-— без нумерации
-— без пояснений
+— caps lock
 
-Примеры:
-AI ОТКРЫВАЕТ ВОЗМОЖНОСТИ
-СТАРЫЕ МЕТОДЫ УМИРАЮТ
-АВТОМАТИЗИРУЙ СЕЙЧАС
-БУДУЩЕЕ ЗА БЫСТРЫМИ
-НАЧНИ ПРЯМО СЕГОДНЯ
+Без пояснений.
 """
 
     try:
+
         text = await ask_groq(prompt, 250)
 
         if not text:
-            raise Exception("No carousel text")
+            raise Exception("No carousel")
 
         slides = []
 
         for line in text.split("\n"):
-            line = line.strip()
-
-            if not line:
-                continue
 
             line = (
-                line.replace("1.", "")
+                line.strip()
+                .replace("1.", "")
                 .replace("2.", "")
                 .replace("3.", "")
                 .replace("4.", "")
                 .replace("5.", "")
                 .replace("-", "")
-                .replace("•", "")
                 .strip()
                 .upper()
             )
@@ -158,52 +170,98 @@ AI ОТКРЫВАЕТ ВОЗМОЖНОСТИ
         return slides[:5]
 
     except Exception as e:
-        print("CAROUSEL AI ERROR:", e)
+
+        print("CAROUSEL ERROR:", e)
 
         return [
             "AI МЕНЯЕТ ПРАВИЛА",
-            "СТАРЫЕ МЕТОДЫ УМИРАЮТ",
-            "АВТОМАТИЗИРУЙ СЕЙЧАС",
-            "ВЫИГРЫВАЙ ВРЕМЯ",
-            "НАЧНИ ПРЯМО СЕГОДНЯ"
+            "БУДУЩЕЕ УЖЕ ЗДЕСЬ",
+            "НЕЙРОСЕТИ ПОБЕЖДАЮТ",
+            "АВТОМАТИЗИРУЙ БЫСТРЕЕ",
+            "НАЧНИ ПРЯМО СЕЙЧАС"
         ]
 
 
 async def generate_content_plan():
-    prompt = """
-Составь контент-план на 7 дней для Telegram-канала про AI, нейросети, бизнес и автоматизацию.
 
-Формат строго:
+    prompt = """
+Создай контент-план на 7 дней.
+
+Формат:
 
 День 1:
 Пост:
 Карусель:
 Reels:
 
-День 2:
-Пост:
-Карусель:
-Reels:
-
 И так до 7 дня.
 
+Тематика:
+AI
+нейросети
+автоматизация
+заработок
+AI бизнес
+
 Стиль:
-— продающий
-— современный
-— для AI/SaaS проекта
-— темы должны быть разные
-— без воды
-— коротко
+дорого
+viral
+современно
 """
 
     try:
+
         text = await ask_groq(prompt, 1000)
 
         if not text:
-            return "📅 Не удалось создать контент-план. Попробуй позже."
+            return "Не удалось создать контент-план."
 
         return text[:4000]
 
     except Exception as e:
-        print("CONTENT PLAN ERROR:", e)
-        return "📅 Не удалось создать контент-план. Попробуй позже."
+
+        print("PLAN ERROR:", e)
+
+        return "Ошибка генерации контент-плана."
+
+
+async def rewrite_text(text, style="viral"):
+
+    style_prompt = REWRITE_STYLES.get(
+        style,
+        REWRITE_STYLES["viral"]
+    )
+
+    prompt = f"""
+Перепиши текст.
+
+Стиль:
+{style_prompt}
+
+Правила:
+— короткие абзацы
+— эмоционально
+— удержание внимания
+— современный стиль
+— мощный hook
+— без воды
+— как дорогой AI creator
+
+Текст:
+{text}
+"""
+
+    try:
+
+        result = await ask_groq(prompt, 1000)
+
+        if not result:
+            return "Не удалось переписать текст."
+
+        return result[:4000]
+
+    except Exception as e:
+
+        print("REWRITE ERROR:", e)
+
+        return "Ошибка rewrite."
