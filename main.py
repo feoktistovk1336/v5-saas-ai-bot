@@ -12,7 +12,10 @@ from aiogram.types import (
     FSInputFile,
     LabeledPrice,
     PreCheckoutQuery,
-    BotCommand
+    BotCommand,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    CallbackQuery
 )
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -54,21 +57,82 @@ scheduler = AsyncIOScheduler()
 
 
 # ==================================================
-# KEYBOARD
+# USER KEYBOARD
 # ==================================================
 menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔥 AI Пост"), KeyboardButton(text="🖼 Карусель")],
-        [KeyboardButton(text="🎬 Reels"), KeyboardButton(text="🧠 Идеи")],
-        [KeyboardButton(text="📈 Тренды"), KeyboardButton(text="💳 Тарифы")],
-        [KeyboardButton(text="👑 Админ"), KeyboardButton(text="🚀 Автопост")]
+        [
+            KeyboardButton(text="🔥 AI Пост"),
+            KeyboardButton(text="🖼 Карусель")
+        ],
+        [
+            KeyboardButton(text="🎬 Reels"),
+            KeyboardButton(text="🧠 Идеи")
+        ],
+        [
+            KeyboardButton(text="📈 Тренды"),
+            KeyboardButton(text="💳 Тарифы")
+        ],
+        [
+            KeyboardButton(text="👑 Админ"),
+            KeyboardButton(text="🚀 Автопост")
+        ]
     ],
     resize_keyboard=True
 )
 
 
 # ==================================================
-# FONTS / TEXT
+# ADMIN INLINE PANEL
+# ==================================================
+admin_panel = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🚀 Пост сейчас",
+                callback_data="admin_postnow"
+            ),
+            InlineKeyboardButton(
+                text="🧪 Тест поста",
+                callback_data="admin_testpost"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="✅ Автопост ON",
+                callback_data="admin_autoon"
+            ),
+            InlineKeyboardButton(
+                text="❌ Автопост OFF",
+                callback_data="admin_autooff"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="⏰ 1 час",
+                callback_data="admin_auto1"
+            ),
+            InlineKeyboardButton(
+                text="⏰ 3 часа",
+                callback_data="admin_auto3"
+            ),
+            InlineKeyboardButton(
+                text="⏰ 6 часов",
+                callback_data="admin_auto6"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="📊 Статистика",
+                callback_data="admin_stats"
+            )
+        ]
+    ]
+)
+
+
+# ==================================================
+# FONTS / TEXT HELPERS
 # ==================================================
 def load_font(size):
     paths = [
@@ -124,8 +188,15 @@ def fit_title(draw, text, max_width, max_height):
 
     for size in range(86, 38, -4):
         font = load_font(size)
-        max_chars = max(8, int(max_width / (size * 0.58)))
-        lines = wrap_lines(clean, max_chars)
+        max_chars = max(
+            8,
+            int(max_width / (size * 0.58))
+        )
+
+        lines = wrap_lines(
+            clean,
+            max_chars
+        )
 
         line_height = int(size * 1.08)
         total_height = len(lines) * line_height
@@ -133,26 +204,40 @@ def fit_title(draw, text, max_width, max_height):
         widest = 0
 
         for line in lines:
-            box = draw.textbbox((0, 0), line, font=font)
-            widest = max(widest, box[2] - box[0])
+            box = draw.textbbox(
+                (0, 0),
+                line,
+                font=font
+            )
 
-        if widest <= max_width and total_height <= max_height:
+            widest = max(
+                widest,
+                box[2] - box[0]
+            )
+
+        if (
+            widest <= max_width
+            and total_height <= max_height
+        ):
             return font, lines[:4], line_height
 
     font = load_font(42)
+
     return font, wrap_lines(clean, 13)[:4], 48
 
 
 # ==================================================
-# IMAGE GENERATOR — PREMIUM STYLE
+# PREMIUM IMAGE GENERATOR
 # ==================================================
 async def create_ai_image(image_url, title, show_brand=True):
+
     try:
         temp_file = f"temp_{random.randint(1, 999999)}.jpg"
         final_file = f"final_{random.randint(1, 999999)}.jpg"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(image_url) as response:
+
                 if response.status != 200:
                     return None
 
@@ -162,44 +247,78 @@ async def create_ai_image(image_url, title, show_brand=True):
         image = Image.open(temp_file).convert("RGBA")
         image = image.resize((1080, 1080))
 
-        # cinema dark overlay
-        dark = Image.new("RGBA", image.size, (0, 0, 0, 95))
-        image = Image.alpha_composite(image, dark)
+        # dark cinematic overlay
+        dark = Image.new(
+            "RGBA",
+            image.size,
+            (0, 0, 0, 95)
+        )
+
+        image = Image.alpha_composite(
+            image,
+            dark
+        )
 
         # warm glow
-        glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        glow = Image.new(
+            "RGBA",
+            image.size,
+            (0, 0, 0, 0)
+        )
+
         glow_draw = ImageDraw.Draw(glow)
 
         for r in range(520, 0, -10):
             alpha = int(90 * (r / 520))
+
             glow_draw.ellipse(
-                [(760 - r, 680 - r), (760 + r, 680 + r)],
+                [
+                    (760 - r, 680 - r),
+                    (760 + r, 680 + r)
+                ],
                 fill=(255, 170, 30, alpha)
             )
 
-        image = Image.alpha_composite(image, glow)
+        image = Image.alpha_composite(
+            image,
+            glow
+        )
 
         # bottom depth gradient
-        gradient = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        gradient = Image.new(
+            "RGBA",
+            image.size,
+            (0, 0, 0, 0)
+        )
+
         gd = ImageDraw.Draw(gradient)
 
         for yy in range(1080):
             alpha = int(190 * (yy / 1080))
+
             gd.line(
                 [(0, yy), (1080, yy)],
                 fill=(0, 0, 0, alpha)
             )
 
-        image = Image.alpha_composite(image, gradient)
+        image = Image.alpha_composite(
+            image,
+            gradient
+        )
 
-        # card position
+        # card
         card_x = 70
         card_y = 145
         card_w = 780
         card_h = 810
 
         # shadow
-        shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        shadow = Image.new(
+            "RGBA",
+            image.size,
+            (0, 0, 0, 0)
+        )
+
         sd = ImageDraw.Draw(shadow)
 
         sd.rounded_rectangle(
@@ -211,14 +330,23 @@ async def create_ai_image(image_url, title, show_brand=True):
             fill=(0, 0, 0, 140)
         )
 
-        shadow = shadow.filter(ImageFilter.GaussianBlur(20))
-        image = Image.alpha_composite(image, shadow)
+        shadow = shadow.filter(
+            ImageFilter.GaussianBlur(20)
+        )
+
+        image = Image.alpha_composite(
+            image,
+            shadow
+        )
 
         draw = ImageDraw.Draw(image)
 
         # premium glass card
         draw.rounded_rectangle(
-            [(card_x, card_y), (card_x + card_w, card_y + card_h)],
+            [
+                (card_x, card_y),
+                (card_x + card_w, card_y + card_h)
+            ],
             radius=60,
             fill=(3, 8, 18, 226),
             outline=(255, 255, 255, 80),
@@ -231,7 +359,10 @@ async def create_ai_image(image_url, title, show_brand=True):
 
         # badge
         draw.rounded_rectangle(
-            [(card_x + 55, card_y + 55), (card_x + 275, card_y + 108)],
+            [
+                (card_x + 55, card_y + 55),
+                (card_x + 275, card_y + 108)
+            ],
             radius=26,
             fill=(255, 255, 255, 22),
             outline=(255, 255, 255, 80),
@@ -256,7 +387,11 @@ async def create_ai_image(image_url, title, show_brand=True):
         text_y = card_y + 170
 
         for i, line in enumerate(lines):
-            color = (255, 218, 35) if i in [1, 2] else (255, 255, 255)
+            color = (
+                (255, 218, 35)
+                if i in [1, 2]
+                else (255, 255, 255)
+            )
 
             draw.text(
                 (card_x + 55, text_y),
@@ -315,7 +450,10 @@ async def create_ai_image(image_url, title, show_brand=True):
             badge_h = 46
 
             draw.rounded_rectangle(
-                [(badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h)],
+                [
+                    (badge_x, badge_y),
+                    (badge_x + badge_w, badge_y + badge_h)
+                ],
                 radius=23,
                 fill=(0, 0, 0, 65),
                 outline=(255, 218, 35, 180),
@@ -345,30 +483,46 @@ async def create_ai_image(image_url, title, show_brand=True):
         print("CREATE IMAGE ERROR:", e)
         return None
 
+
 # ==================================================
-# ACCESS
+# ACCESS HELPERS
 # ==================================================
 async def user_has_access(user_id):
+
     if user_id == ADMIN_ID:
         return True
 
     if await is_pro(user_id):
         return True
 
-    return await can_generate(user_id, FREE_LIMIT)
+    return await can_generate(
+        user_id,
+        FREE_LIMIT
+    )
 
 
 async def is_autopost_enabled():
-    value = await get_setting("autopost_enabled", "1")
+
+    value = await get_setting(
+        "autopost_enabled",
+        "1"
+    )
+
     return value == "1"
 
 
 async def get_autopost_hours():
-    value = await get_setting("autopost_hours", "3")
+
+    value = await get_setting(
+        "autopost_hours",
+        "3"
+    )
+
     return int(value)
 
 
 async def setup_autopost_job():
+
     hours = await get_autopost_hours()
 
     scheduler.add_job(
@@ -385,6 +539,7 @@ async def setup_autopost_job():
 # ==================================================
 @dp.message(lambda m: m.text == "/start")
 async def start(m: types.Message):
+
     await create_user(m.from_user.id)
 
     await m.answer(
@@ -399,6 +554,7 @@ async def start(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "🔥 AI Пост")
 async def ai_post(m: types.Message):
+
     try:
         if not await user_has_access(m.from_user.id):
             return await m.answer(
@@ -406,13 +562,20 @@ async def ai_post(m: types.Message):
                 "Оформи PRO в разделе 💳 Тарифы."
             )
 
-        await m.answer("🔥 Создаю AI пост...")
+        await m.answer(
+            "🔥 Создаю AI пост..."
+        )
 
         text, topic = await generate_text()
-        images = await generate_images(topic, 1)
+
+        images = await generate_images(
+            topic,
+            1
+        )
 
         show_brand = not (
-            m.from_user.id == ADMIN_ID or await is_pro(m.from_user.id)
+            m.from_user.id == ADMIN_ID
+            or await is_pro(m.from_user.id)
         )
 
         if images:
@@ -423,14 +586,25 @@ async def ai_post(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(photo=FSInputFile(final_image))
+                await m.answer_photo(
+                    photo=FSInputFile(final_image)
+                )
 
-        await m.answer(text[:4000])
-        await add_generation(m.from_user.id, "post", text)
+        await m.answer(
+            text[:4000]
+        )
+
+        await add_generation(
+            m.from_user.id,
+            "post",
+            text
+        )
 
     except Exception as e:
         print("AI POST ERROR:", e)
-        await m.answer("❌ Ошибка генерации поста")
+        await m.answer(
+            "❌ Ошибка генерации поста"
+        )
 
 
 # ==================================================
@@ -438,6 +612,7 @@ async def ai_post(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "🖼 Карусель")
 async def carousel(m: types.Message):
+
     try:
         if not await user_has_access(m.from_user.id):
             return await m.answer(
@@ -445,7 +620,9 @@ async def carousel(m: types.Message):
                 "Оформи PRO в разделе 💳 Тарифы."
             )
 
-        await m.answer("🖼 Создаю AI карусель...")
+        await m.answer(
+            "🖼 Создаю AI карусель..."
+        )
 
         topic = random.choice([
             "AI бизнес",
@@ -456,10 +633,15 @@ async def carousel(m: types.Message):
         ])
 
         slides = await generate_carousel(topic)
-        images = await generate_images(topic, len(slides))
+
+        images = await generate_images(
+            topic,
+            len(slides)
+        )
 
         show_brand = not (
-            m.from_user.id == ADMIN_ID or await is_pro(m.from_user.id)
+            m.from_user.id == ADMIN_ID
+            or await is_pro(m.from_user.id)
         )
 
         for i, slide in enumerate(slides):
@@ -470,14 +652,25 @@ async def carousel(m: types.Message):
             )
 
             if final_image:
-                await m.answer_photo(photo=FSInputFile(final_image))
+                await m.answer_photo(
+                    photo=FSInputFile(final_image)
+                )
 
-        await add_generation(m.from_user.id, "carousel", topic)
-        await m.answer("🔥 AI карусель готова")
+        await add_generation(
+            m.from_user.id,
+            "carousel",
+            topic
+        )
+
+        await m.answer(
+            "🔥 AI карусель готова"
+        )
 
     except Exception as e:
         print("CAROUSEL ERROR:", e)
-        await m.answer("❌ Ошибка карусели")
+        await m.answer(
+            "❌ Ошибка карусели"
+        )
 
 
 # ==================================================
@@ -485,6 +678,7 @@ async def carousel(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "🎬 Reels")
 async def reels(m: types.Message):
+
     try:
         if not await user_has_access(m.from_user.id):
             return await m.answer(
@@ -492,17 +686,31 @@ async def reels(m: types.Message):
                 "Оформи PRO в разделе 💳 Тарифы."
             )
 
-        await m.answer("🎬 Создаю Reels...")
+        await m.answer(
+            "🎬 Создаю Reels..."
+        )
 
         text, topic = await generate_text()
-        script = await generate_reels_text(topic)
 
-        await m.answer(f"{script}\n\n{text[:2000]}")
-        await add_generation(m.from_user.id, "reels", script)
+        script = await generate_reels_text(
+            topic
+        )
+
+        await m.answer(
+            f"{script}\n\n{text[:2000]}"
+        )
+
+        await add_generation(
+            m.from_user.id,
+            "reels",
+            script
+        )
 
     except Exception as e:
         print("REELS ERROR:", e)
-        await m.answer("❌ Ошибка генерации Reels")
+        await m.answer(
+            "❌ Ошибка генерации Reels"
+        )
 
 
 # ==================================================
@@ -510,6 +718,7 @@ async def reels(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "🧠 Идеи")
 async def ideas(m: types.Message):
+
     ideas_list = [
         "5 AI-инструментов для бизнеса",
         "Как заработать на нейросетях",
@@ -534,6 +743,7 @@ async def ideas(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "📈 Тренды")
 async def trends(m: types.Message):
+
     await m.answer(
         "📈 AI ТРЕНДЫ\n\n"
         "🔥 AI агенты\n"
@@ -550,6 +760,7 @@ async def trends(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "💳 Тарифы")
 async def tariffs(m: types.Message):
+
     pro = await is_pro(m.from_user.id)
 
     await m.answer(
@@ -573,6 +784,7 @@ async def tariffs(m: types.Message):
 # ==================================================
 @dp.message(lambda m: m.text == "/buypro")
 async def buy_pro(m: types.Message):
+
     prices = [
         LabeledPrice(
             label=f"PRO доступ на {PRO_DAYS} дней",
@@ -593,14 +805,21 @@ async def buy_pro(m: types.Message):
 
 @dp.pre_checkout_query()
 async def pre_checkout_query(query: PreCheckoutQuery):
-    await query.answer(ok=True)
+
+    await query.answer(
+        ok=True
+    )
 
 
 @dp.message(lambda m: m.successful_payment is not None)
 async def successful_payment(m: types.Message):
+
     payment = m.successful_payment
 
-    await set_pro(m.from_user.id, PRO_DAYS)
+    await set_pro(
+        m.from_user.id,
+        PRO_DAYS
+    )
 
     await add_payment(
         m.from_user.id,
@@ -616,38 +835,180 @@ async def successful_payment(m: types.Message):
 
 
 # ==================================================
-# ADMIN
+# ADMIN PANEL
 # ==================================================
 @dp.message(lambda m: m.text == "👑 Админ")
 async def admin(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
-        return await m.answer("❌ Нет доступа")
+        return await m.answer(
+            "❌ Нет доступа"
+        )
 
     users, gens, payments = await get_stats()
+    enabled = await is_autopost_enabled()
+    hours = await get_autopost_hours()
 
     await m.answer(
         "👑 ADMIN PANEL\n\n"
         f"👥 Пользователей: {users}\n"
         f"🧠 Генераций: {gens}\n"
-        f"💳 Оплат: {payments}\n\n"
-        "/postnow — выложить сейчас\n"
-        "/testpost — тест поста\n"
-        "/autostatus — статус\n"
-        "/autoon — включить\n"
-        "/autooff — выключить\n"
-        "/auto1 — каждый 1 час\n"
-        "/auto3 — каждые 3 часа\n"
-        "/auto6 — каждые 6 часов"
+        f"💳 Оплат: {payments}\n"
+        f"🚀 Автопост: {'ON' if enabled else 'OFF'}\n"
+        f"⏰ Интервал: {hours} ч.",
+        reply_markup=admin_panel
     )
 
 
 # ==================================================
-# AUTOPOST
+# ADMIN CALLBACKS
+# ==================================================
+@dp.callback_query(lambda c: c.data == "admin_stats")
+async def cb_admin_stats(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    users, gens, payments = await get_stats()
+    enabled = await is_autopost_enabled()
+    hours = await get_autopost_hours()
+
+    await c.message.answer(
+        "📊 СТАТИСТИКА\n\n"
+        f"👥 Пользователей: {users}\n"
+        f"🧠 Генераций: {gens}\n"
+        f"💳 Оплат: {payments}\n"
+        f"🚀 Автопост: {'ON' if enabled else 'OFF'}\n"
+        f"⏰ Интервал: {hours} ч."
+    )
+
+    await c.answer()
+
+
+@dp.callback_query(lambda c: c.data == "admin_postnow")
+async def cb_post_now(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    await c.message.answer(
+        "🚀 Публикую пост..."
+    )
+
+    await auto_post()
+
+    await c.message.answer(
+        "✅ Пост опубликован"
+    )
+
+    await c.answer()
+
+
+@dp.callback_query(lambda c: c.data == "admin_testpost")
+async def cb_test_post(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    text, topic = await generate_text()
+
+    await c.message.answer(
+        f"🧪 ТЕСТ ПОСТА\n\n"
+        f"📌 Тема: {topic}\n\n"
+        f"{text[:3000]}"
+    )
+
+    await c.answer()
+
+
+@dp.callback_query(lambda c: c.data == "admin_autoon")
+async def cb_auto_on(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    await set_setting(
+        "autopost_enabled",
+        "1"
+    )
+
+    await c.message.answer(
+        "✅ Автопостинг включен"
+    )
+
+    await c.answer()
+
+
+@dp.callback_query(lambda c: c.data == "admin_autooff")
+async def cb_auto_off(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    await set_setting(
+        "autopost_enabled",
+        "0"
+    )
+
+    await c.message.answer(
+        "❌ Автопостинг выключен"
+    )
+
+    await c.answer()
+
+
+@dp.callback_query(lambda c: c.data in ["admin_auto1", "admin_auto3", "admin_auto6"])
+async def cb_auto_interval(c: CallbackQuery):
+
+    if c.from_user.id != ADMIN_ID:
+        return await c.answer(
+            "Нет доступа",
+            show_alert=True
+        )
+
+    hours = int(
+        c.data.replace("admin_auto", "")
+    )
+
+    await set_setting(
+        "autopost_hours",
+        str(hours)
+    )
+
+    await setup_autopost_job()
+
+    await c.message.answer(
+        f"✅ Интервал автопостинга изменен: {hours} ч."
+    )
+
+    await c.answer()
+
+
+# ==================================================
+# AUTOPOST MENU
 # ==================================================
 @dp.message(lambda m: m.text == "🚀 Автопост")
 async def autopost_menu(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
-        return await m.answer("❌ Нет доступа")
+        return await m.answer(
+            "❌ Нет доступа"
+        )
 
     enabled = await is_autopost_enabled()
     hours = await get_autopost_hours()
@@ -655,24 +1016,27 @@ async def autopost_menu(m: types.Message):
     await m.answer(
         "🚀 АВТОПОСТИНГ\n\n"
         f"Статус: {'✅ включен' if enabled else '❌ выключен'}\n"
-        f"⏰ Интервал: {hours} ч.\n\n"
-        "/postnow — выложить сейчас\n"
-        "/testpost — тест\n"
-        "/autostatus — статус\n"
-        "/autoon — включить\n"
-        "/autooff — выключить\n"
-        "/auto1 /auto3 /auto6 — сменить интервал"
+        f"⏰ Интервал: {hours} ч.",
+        reply_markup=admin_panel
     )
 
 
+# ==================================================
+# AUTOPOST FUNCTION
+# ==================================================
 async def auto_post():
+
     if not await is_autopost_enabled():
         print("AUTOPOST OFF")
         return
 
     try:
         text, topic = await generate_text()
-        images = await generate_images(topic, 1)
+
+        images = await generate_images(
+            topic,
+            1
+        )
 
         if images:
             final_image = await create_ai_image(
@@ -698,18 +1062,29 @@ async def auto_post():
         print("AUTO POST ERROR:", e)
 
 
+# ==================================================
+# OLD TEXT COMMANDS
+# ==================================================
 @dp.message(lambda m: m.text == "/postnow")
 async def post_now(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
-    await m.answer("🚀 Публикую пост...")
+    await m.answer(
+        "🚀 Публикую пост..."
+    )
+
     await auto_post()
-    await m.answer("✅ Готово")
+
+    await m.answer(
+        "✅ Готово"
+    )
 
 
 @dp.message(lambda m: m.text == "/testpost")
 async def test_post(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
@@ -724,6 +1099,7 @@ async def test_post(m: types.Message):
 
 @dp.message(lambda m: m.text == "/autostatus")
 async def auto_status(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
@@ -738,30 +1114,51 @@ async def auto_status(m: types.Message):
 
 @dp.message(lambda m: m.text == "/autoon")
 async def auto_on(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting("autopost_enabled", "1")
-    await m.answer("✅ Автопостинг включен")
+    await set_setting(
+        "autopost_enabled",
+        "1"
+    )
+
+    await m.answer(
+        "✅ Автопостинг включен"
+    )
 
 
 @dp.message(lambda m: m.text == "/autooff")
 async def auto_off(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
-    await set_setting("autopost_enabled", "0")
-    await m.answer("❌ Автопостинг выключен")
+    await set_setting(
+        "autopost_enabled",
+        "0"
+    )
+
+    await m.answer(
+        "❌ Автопостинг выключен"
+    )
 
 
 @dp.message(lambda m: m.text in ["/auto1", "/auto3", "/auto6"])
 async def set_auto_interval(m: types.Message):
+
     if m.from_user.id != ADMIN_ID:
         return
 
-    hours = int(m.text.replace("/auto", ""))
+    hours = int(
+        m.text.replace("/auto", "")
+    )
 
-    await set_setting("autopost_hours", str(hours))
+    await set_setting(
+        "autopost_hours",
+        str(hours)
+    )
+
     await setup_autopost_job()
 
     await m.answer(
@@ -773,9 +1170,12 @@ async def set_auto_interval(m: types.Message):
 # STARTUP
 # ==================================================
 async def on_startup():
+
     await init_db()
 
-    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.delete_webhook(
+        drop_pending_updates=True
+    )
 
     await bot.set_my_commands(
         [
@@ -797,9 +1197,12 @@ async def on_startup():
 # MAIN
 # ==================================================
 async def main():
+
     await on_startup()
+
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
+
     asyncio.run(main())
