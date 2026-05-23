@@ -437,6 +437,7 @@ async def main():
 
     await init_db()
 
+    # удаляем старый webhook
     await bot.delete_webhook(
         drop_pending_updates=True
     )
@@ -458,7 +459,7 @@ async def main():
 
     scheduler.start()
 
-    # ================= POLLING =================
+    # запускаем polling
     await dp.start_polling(bot)
 
 
