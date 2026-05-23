@@ -34,14 +34,17 @@ menu = ReplyKeyboardMarkup(
 
 def wrap_text(text, max_chars=16):
     words = text.split()
-    lines, line = [], ""
+    lines = []
+    line = ""
 
     for word in words:
         test = f"{line} {word}".strip()
+
         if len(test) <= max_chars:
             line = test
         else:
-            lines.append(line)
+            if line:
+                lines.append(line)
             line = word
 
     if line:
@@ -59,7 +62,7 @@ def load_font(size):
     for path in paths:
         try:
             return ImageFont.truetype(path, size)
-        except:
+        except Exception:
             pass
 
     return ImageFont.load_default()
@@ -89,7 +92,7 @@ async def create_ai_image(image_url, title):
         draw.rounded_rectangle(
             [(50, 560), (1030, 1015)],
             radius=45,
-            fill=(0, 0, 0, 205)
+            fill=(0, 0, 0, 210)
         )
 
         font = load_font(78)
@@ -121,11 +124,14 @@ async def create_ai_image(image_url, title):
             font=small_font
         )
 
-        image.convert("RGB").save(final_file, quality=95)
+        image.convert("RGB").save(
+            final_file,
+            quality=95
+        )
 
         try:
             os.remove(temp_file)
-        except:
+        except Exception:
             pass
 
         return final_file
@@ -192,7 +198,6 @@ async def carousel(m: types.Message):
                 await m.answer_photo(photo=FSInputFile(final_image))
 
         await add_generation(m.from_user.id, "carousel", topic)
-
         await m.answer("🔥 AI карусель готова")
 
     except Exception as e:
@@ -232,7 +237,10 @@ async def ideas(m: types.Message):
 
     random.shuffle(ideas_list)
 
-    await m.answer("🧠 AI ИДЕИ\n\n" + "\n".join(ideas_list[:5]))
+    await m.answer(
+        "🧠 AI ИДЕИ\n\n" +
+        "\n".join(ideas_list[:5])
+    )
 
 
 @dp.message(lambda m: m.text == "📈 Тренды")
@@ -355,6 +363,9 @@ async def test_post(m: types.Message):
 
 @dp.message(lambda m: m.text == "/autostatus")
 async def auto_status(m: types.Message):
+    if m.from_user.id != ADMIN_ID:
+        return
+
     await m.answer(
         f"🚀 Автопостинг: {'✅ включен' if AUTOPOST_ENABLED else '❌ выключен'}\n"
         "⏰ Интервал: 3 часа"
