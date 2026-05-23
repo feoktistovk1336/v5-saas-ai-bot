@@ -208,12 +208,14 @@ async def ai_post(m: types.Message):
             1
         )
 
+        # отправляем картинку
         if images:
 
             await m.answer_photo(
                 photo=images[0]
             )
 
+        # отправляем текст отдельно
         await m.answer(text)
 
     except Exception as e:
@@ -375,31 +377,25 @@ async def auto_post():
             1
         )
 
+        # картинка отдельно
         if images:
 
             await bot.send_photo(
-    chat_id=CHANNEL_ID,
-    photo=images[0]
-)
-
-await bot.send_message(
-    chat_id=CHANNEL_ID,
-    text=text
-)
-        else:
-
-            await bot.send_message(
                 chat_id=CHANNEL_ID,
-                text=text
+                photo=images[0]
             )
 
-        print("AUTO POST SENT")
+        # текст отдельно
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=text
+        )
+
+        print("AUTO POST SUCCESS")
 
     except Exception as e:
 
-        print("AUTOPOST ERROR:", e)
-
-
+        print("AUTO POST ERROR:", e)
 # ================= AUTO CAROUSEL =================
 async def auto_carousel():
 
